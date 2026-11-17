@@ -11,6 +11,7 @@ from .calculadora import CalculadoraCientifica
 from .escenarios import obtener_escenario
 from .estrellas import EstrellasCanvas
 from .formulas_latex import LATEX_METODOS, renderizar_formula_tk
+from .guias_metodos import GUIAS_METODOS
 from .tema import (
     AMBAR,
     BORDE_CALIDO,
@@ -61,7 +62,11 @@ class ConsolaMision(tk.Frame):
         self.activo = False
         self._verificando = False
         self._modal_overlay: Optional[tk.Frame] = None
+        self._guia_overlay: Optional[tk.Frame] = None
         self._foto_formula = None
+        self._foto_guia = None
+        self._tooltip_lbl: Optional[tk.Label] = None
+        self._tooltip_after_id: Optional[str] = None
 
         # Pestañas y estado de UI / escalado responsivo
         self._tab_izq_actual = "datos"
@@ -154,17 +159,32 @@ class ConsolaMision(tk.Frame):
         )
         self.lbl_estrellas_intento.pack(side="left")
 
-        # Barra de oxigeno
+        # Barra de oxigeno (+ interruptor Sin Tiempo exclusivo de Revision Docente / Practica)
         self.ox_frame = tk.Frame(self, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=1)
         self.ox_frame.pack(fill="x", padx=16, pady=(0, 4))
 
         self.lbl_oxigeno = tk.Label(
-            self.ox_frame, text="OXIGENO: 180 s", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 9, "bold"), width=18, anchor="w"
+            self.ox_frame, text="OXIGENO: 360 s", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 9, "bold"), width=26, anchor="w"
         )
         self.lbl_oxigeno.pack(side="left", padx=10, pady=3)
 
+        self.btn_sin_tiempo = tk.Button(
+            self.ox_frame,
+            text="MODO SIN TIEMPO: OFF",
+            command=self._alternar_sin_tiempo,
+            bg=PANEL_ELEVADO,
+            fg=DORADO,
+            font=(FUENTE_MONO, 8, "bold"),
+            bd=0,
+            padx=9,
+            pady=3,
+            cursor="hand2",
+        )
+        if not self.estado.es_modo_examen:
+            self.btn_sin_tiempo.pack(side="right", padx=(6, 10), pady=2)
+
         self.canvas_ox = tk.Canvas(self.ox_frame, height=14, bg="#100C1C", highlightthickness=0)
-        self.canvas_ox.pack(side="left", fill="x", expand=True, padx=(0, 10), pady=3)
+        self.canvas_ox.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=3)
 
         # Cuerpo principal: 2 columnas proporcionales en cualquier resolucion
         self.cuerpo = tk.Frame(self, bg=FONDO_GALAXIA)
@@ -405,7 +425,19 @@ class ConsolaMision(tk.Frame):
             wraplength=440,
             justify="left",
         )
-        self.lbl_pregunta.pack(anchor="w", padx=14, pady=(0, 8))
+        self.lbl_pregunta.pack(anchor="w", padx=14, pady=(0, 4))
+
+        self.lbl_tooltip_input = tk.Label(
+            self.der_contenido,
+            text="",
+            bg=PANEL_OSCURO,
+            fg=GRIS_CALIDO,
+            font=("Segoe UI", 9, "italic"),
+            wraplength=430,
+            justify="left",
+            anchor="w",
+        )
+        self.lbl_tooltip_input.pack(fill="x", padx=14, pady=(0, 4))
 
         self.zona_entrada = tk.Frame(self.der_contenido, bg=PANEL_OSCURO)
         self.zona_entrada.pack(fill="x", padx=14, pady=(0, 8))
@@ -433,10 +465,10 @@ class ConsolaMision(tk.Frame):
             fg="#160F24",
             sombra="#8C4E22",
             fuente=(FUENTE_MONO, 10, "bold"),
-            padx=12,
+            padx=10,
             pady=5,
         )
-        self.btn_verificar.pack(side="left", padx=(0, 6))
+        self.btn_verificar.pack(side="left", padx=(0, 5))
 
         self.btn_toggle_calc = tk.Button(
             btn_row,
@@ -446,11 +478,27 @@ class ConsolaMision(tk.Frame):
             fg=DORADO,
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
-            padx=9,
+            padx=7,
             pady=6,
             cursor="hand2",
         )
-        self.btn_toggle_calc.pack(side="left", padx=(0, 6))
+        self.btn_toggle_calc.pack(side="left", padx=(0, 5))
+
+        self.btn_guia = tk.Button(
+            btn_row,
+            text="? GUIA",
+            command=self._abrir_modal_guia,
+            bg="#262044",
+            fg=DORADO,
+            font=(FUENTE_MONO, 9, "bold"),
+            highlightbackground=DORADO,
+            highlightthickness=1,
+            bd=0,
+            padx=8,
+            pady=5,
+            cursor="hand2",
+        )
+        self.btn_guia.pack(side="left", padx=(0, 5))
 
         self.btn_nuevos_datos = crear_boton_3d(
             btn_row,
@@ -460,10 +508,15 @@ class ConsolaMision(tk.Frame):
             fg=CREMA,
             sombra="#120E20",
             fuente=(FUENTE_MONO, 9, "bold"),
-            padx=9,
+            padx=7,
             pady=5,
         )
         self.btn_nuevos_datos.pack(side="left")
+
+        self._vincular_tooltip(self.entry_resp, lambda: self._texto_tooltip_paso())
+        self._vincular_tooltip(self.btn_guia, lambda: "Abre el formulario oficial completo y resumen de 3 pasos del metodo.")
+        self._vincular_tooltip(self.btn_toggle_calc, lambda: "Muestra u oculta la calculadora cientifica integrada.")
+        self._vincular_tooltip(self.btn_sin_tiempo, lambda: "Pausa/activa el temporizador libremente en revision docente (desactivado en Examen).")
 
         self.lbl_feedback = tk.Label(
             self.der_contenido,
@@ -603,6 +656,7 @@ class ConsolaMision(tk.Frame):
             wrap = max(260, w - 42)
             self.lbl_paso_titulo.config(wraplength=wrap, font=("Segoe UI", self._tam_paso, "bold"))
             self.lbl_pregunta.config(wraplength=wrap, font=("Segoe UI", self._tam_preg))
+            self.lbl_tooltip_input.config(wraplength=wrap)
             self.lbl_feedback.config(wraplength=wrap)
             for hijo in self.frame_opciones.winfo_children():
                 if isinstance(hijo, tk.Radiobutton):
@@ -698,12 +752,212 @@ class ConsolaMision(tk.Frame):
         self.lbl_feedback.config(text=f"Valor {texto_val} transferido desde calculadora.", fg=ESMERALDA)
 
     # ------------------------------------------------------------------
+    # MODO REVISION SIN TIEMPO, TOOLTIPS EMBEBIDOS Y MODAL ? GUIA
+    # ------------------------------------------------------------------
+
+    def _esta_sin_tiempo(self) -> bool:
+        return (not self.estado.es_modo_examen) and bool(self.estado.sin_limite_tiempo)
+
+    def _alternar_sin_tiempo(self) -> None:
+        if self.estado.es_modo_examen or not self.activo:
+            return
+        nuevo = self.estado.establecer_sin_limite_tiempo(not self.estado.sin_limite_tiempo)
+        if not nuevo:
+            # Restaura tiempo_inicio coherente con el oxigeno restante sin perderlo
+            consumido = max(0.0, self.oxigeno_total - self.oxigeno_restante - self._penalizacion_seg)
+            self.tiempo_inicio = time.time() - consumido
+            if self._after_id is None:
+                self._tick_oxigeno()
+        self._actualizar_boton_sin_tiempo()
+        self._refrescar_oxigeno_ui()
+
+    def _actualizar_boton_sin_tiempo(self) -> None:
+        if self.estado.es_modo_examen:
+            if self.btn_sin_tiempo.winfo_ismapped():
+                self.btn_sin_tiempo.pack_forget()
+            return
+        if not self.btn_sin_tiempo.winfo_ismapped():
+            self.btn_sin_tiempo.pack(side="right", padx=(6, 10), pady=2)
+        if self._esta_sin_tiempo():
+            self.btn_sin_tiempo.config(text="SIN TIEMPO: ON", bg=ESMERALDA, fg=FONDO_GALAXIA)
+        else:
+            self.btn_sin_tiempo.config(text="MODO SIN TIEMPO: OFF", bg=PANEL_ELEVADO, fg=DORADO)
+
+    def _texto_tooltip_paso(self) -> str:
+        pasos = self.mision.get("pasos", [])
+        if self.paso_idx < len(pasos):
+            return str(pasos[self.paso_idx].get("tooltip", "")).strip()
+        return ""
+
+    def _vincular_tooltip(self, widget: tk.Widget, texto_fn: Callable[[], str]) -> None:
+        widget.bind("<Enter>", lambda _e, w=widget, fn=texto_fn: self._programar_tooltip(w, fn), add="+")
+        widget.bind("<Leave>", lambda _e: self._ocultar_tooltip(), add="+")
+        widget.bind("<ButtonPress-1>", lambda _e: self._ocultar_tooltip(), add="+")
+
+    def _programar_tooltip(self, widget: tk.Widget, texto_fn: Callable[[], str]) -> None:
+        self._ocultar_tooltip()
+        if not self.winfo_exists():
+            return
+        self._tooltip_after_id = self.after(320, lambda: self._mostrar_tooltip(widget, texto_fn()))
+
+    def _mostrar_tooltip(self, widget: tk.Widget, texto: str) -> None:
+        self._tooltip_after_id = None
+        if not texto or not self.winfo_exists() or not widget.winfo_exists():
+            return
+        try:
+            rx = widget.winfo_rootx() - self.winfo_rootx()
+            ry = widget.winfo_rooty() - self.winfo_rooty() - 36
+            if ry < 8:
+                ry = widget.winfo_rooty() - self.winfo_rooty() + widget.winfo_height() + 4
+            rx = max(12, min(rx, max(40, self.winfo_width() - 360)))
+        except tk.TclError:
+            return
+        self._ocultar_tooltip()
+        lbl = tk.Label(
+            self,
+            text=texto,
+            bg="#0D0A1A",
+            fg=DORADO,
+            highlightbackground=AMBAR,
+            highlightthickness=1,
+            font=("Segoe UI", 9, "bold"),
+            wraplength=340,
+            justify="left",
+            padx=8,
+            pady=4,
+        )
+        lbl.place(x=rx, y=ry)
+        lbl.lift()
+        self._tooltip_lbl = lbl
+
+    def _ocultar_tooltip(self) -> None:
+        if self._tooltip_after_id is not None:
+            try:
+                self.after_cancel(self._tooltip_after_id)
+            except tk.TclError:
+                pass
+            self._tooltip_after_id = None
+        if self._tooltip_lbl is not None and self._tooltip_lbl.winfo_exists():
+            self._tooltip_lbl.destroy()
+        self._tooltip_lbl = None
+
+    def _cerrar_modal_guia(self) -> None:
+        if self._guia_overlay is not None and self._guia_overlay.winfo_exists():
+            try:
+                self._guia_overlay.unbind_all("<MouseWheel>")
+            except Exception:
+                pass
+            self._guia_overlay.destroy()
+        self._guia_overlay = None
+        self._foto_guia = None
+
+    def _abrir_modal_guia(self) -> None:
+        """Abre modal embebido (sin Toplevel) con formulario completo y guía en 3 pasos."""
+        self._ocultar_tooltip()
+        self._cerrar_modal_guia()
+        guia = GUIAS_METODOS.get(self.nombre_metodo)
+        if not guia:
+            return
+        esc = obtener_escenario(self.mision.get("sala_id", 1))
+        acento = esc["acento"]
+
+        ov = tk.Frame(self, bg="#0B0816")
+        ov.place(relx=0, rely=0, relwidth=1, relheight=1)
+        self._guia_overlay = ov
+
+        ancho_modal = min(760, max(540, self.winfo_width() - 80))
+        alto_modal = min(600, max(440, self.winfo_height() - 60))
+        card = tk.Frame(ov, bg=PANEL_OSCURO, highlightbackground=acento, highlightthickness=3)
+        card.place(relx=0.5, rely=0.5, anchor="center", width=ancho_modal, height=alto_modal)
+
+        hdr = tk.Frame(card, bg="#16112B")
+        hdr.pack(fill="x")
+        tk.Label(
+            hdr,
+            text=f"FORMULARIO Y GUIA OFICIAL // {self.nombre_metodo.upper()}",
+            bg="#16112B",
+            fg=DORADO,
+            font=("Segoe UI", 13, "bold"),
+            anchor="w",
+        ).pack(side="left", padx=14, pady=10)
+        tk.Button(
+            hdr,
+            text="CERRAR [X]",
+            command=self._cerrar_modal_guia,
+            bg=AMBAR,
+            fg=FONDO_GALAXIA,
+            font=(FUENTE_MONO, 9, "bold"),
+            bd=0,
+            padx=12,
+            pady=5,
+            cursor="hand2",
+        ).pack(side="right", padx=12, pady=8)
+
+        body_host = tk.Frame(card, bg=PANEL_OSCURO)
+        body_host.pack(fill="both", expand=True, padx=10, pady=(4, 10))
+        sc_g = tk.Scrollbar(body_host, orient="vertical")
+        can_g = tk.Canvas(body_host, bg=PANEL_OSCURO, highlightthickness=0, yscrollcommand=sc_g.set)
+        sc_g.config(command=can_g.yview)
+        sc_g.pack(side="right", fill="y")
+        can_g.pack(side="left", fill="both", expand=True)
+
+        inner_g = tk.Frame(can_g, bg=PANEL_OSCURO, padx=10, pady=8)
+        win_g = can_g.create_window((0, 0), window=inner_g, anchor="nw")
+        can_g.bind("<Configure>", lambda e: can_g.itemconfigure(win_g, width=max(320, e.width - 4)))
+        inner_g.bind("<Configure>", lambda _e: can_g.configure(scrollregion=can_g.bbox("all")))
+        can_g.bind("<Enter>", lambda _e: can_g.bind_all("<MouseWheel>", lambda ev: can_g.yview_scroll(int(-ev.delta / 120), "units") if can_g.winfo_exists() else None))
+        can_g.bind("<Leave>", lambda _e: can_g.unbind_all("<MouseWheel>"))
+
+        wrap_txt = ancho_modal - 70
+        tk.Label(
+            inner_g, text=f"Fuente de clase: {guia['fuente']}", bg=PANEL_OSCURO, fg=GRIS_CALIDO,
+            font=(FUENTE_MONO, 9, "bold"), anchor="w", wraplength=wrap_txt, justify="left",
+        ).pack(fill="x", pady=(0, 6))
+
+        latex = LATEX_METODOS.get(self.nombre_metodo)
+        foto = renderizar_formula_tk(latex, color_texto=acento, tamano_pt=14, max_ancho=wrap_txt) if latex else None
+        if foto is not None:
+            self._foto_guia = foto
+            fr_ltx = tk.Frame(inner_g, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1)
+            fr_ltx.pack(fill="x", pady=(0, 8))
+            tk.Label(fr_ltx, image=foto, bg="#120E20", padx=8, pady=6).pack(anchor="w")
+
+        tk.Label(inner_g, text="ECUACIONES COMPLETAS DEL METODO", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        tk.Label(
+            inner_g, text=guia["ecuaciones"], bg="#120E20", fg=DORADO,
+            font=(FUENTE_MONO, 10), justify="left", anchor="w", padx=10, pady=8, wraplength=wrap_txt,
+        ).pack(fill="x", pady=(2, 8))
+
+        tk.Label(inner_g, text="VARIABLES SOLICITADAS", bg=PANEL_OSCURO, fg=ESMERALDA, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        tk.Label(
+            inner_g, text=guia["variables"], bg="#16112B", fg=CREMA,
+            font=("Segoe UI", 10), justify="left", anchor="w", padx=10, pady=6, wraplength=wrap_txt,
+        ).pack(fill="x", pady=(2, 8))
+
+        tk.Label(inner_g, text="RESUMEN EN 3 PASOS PARA RESOLVERLO", bg=PANEL_OSCURO, fg=acento, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        pasos_box = tk.Frame(inner_g, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=10, pady=6)
+        pasos_box.pack(fill="x", pady=(2, 8))
+        for p_txt in guia["pasos_guia"]:
+            tk.Label(
+                pasos_box, text=p_txt, bg="#120E20", fg=CREMA,
+                font=("Segoe UI", 10), justify="left", anchor="w", wraplength=wrap_txt - 16,
+            ).pack(fill="x", pady=2)
+
+        if guia.get("tabla_extra"):
+            tk.Label(inner_g, text="TABLA OFICIAL DE CONSTANTES", bg=PANEL_OSCURO, fg=DORADO, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+            tk.Label(
+                inner_g, text=guia["tabla_extra"], bg="#100C1C", fg=CREMA,
+                font=(FUENTE_MONO, 9), justify="left", anchor="w", padx=10, pady=6,
+            ).pack(fill="x", pady=(2, 6))
+
+    # ------------------------------------------------------------------
     # SEGURIDAD DE MODO EXAMEN INGE (FOCUS / CLIPBOARD / PRIVACY CURTAIN)
     # ------------------------------------------------------------------
 
     def _configurar_seguridad_modo(self) -> None:
         es_ex = self.estado.es_modo_examen
         if es_ex:
+            self.estado.establecer_sin_limite_tiempo(False)
             self.lbl_modo_badge.config(text="MODO EXAMEN INGE", bg=ROJO_OXIGENO, fg=CREMA)
             self.btn_nuevos_datos.boton.config(state="disabled", text="BLOQUEADO EXAMEN")
             self.calculadora.establecer_clipboard_bloqueado(True)
@@ -715,6 +969,7 @@ class ConsolaMision(tk.Frame):
             self.calculadora.establecer_clipboard_bloqueado(False)
             self._aplicar_bloqueo_portapapeles(False)
             self._desactivar_detector_foco()
+        self._actualizar_boton_sin_tiempo()
 
     def _aplicar_bloqueo_portapapeles(self, bloquear: bool) -> None:
         eventos_clip = (
@@ -995,7 +1250,9 @@ class ConsolaMision(tk.Frame):
     def _al_destruir(self) -> None:
         self.activo = False
         self._cancelar_timer()
-        for attr in ("_resize_izq_id", "_resize_der_id", "_scroll_idle_id"):
+        self._ocultar_tooltip()
+        self._cerrar_modal_guia()
+        for attr in ("_resize_izq_id", "_resize_der_id", "_scroll_idle_id", "_tooltip_after_id"):
             cid = getattr(self, attr, None)
             if cid is not None:
                 try:
@@ -1063,6 +1320,7 @@ class ConsolaMision(tk.Frame):
             self.lbl_progreso_paso,
             self.lbl_paso_titulo,
             self.lbl_pregunta,
+            self.lbl_tooltip_input,
         ):
             lbl.configure(bg=panel)
         self.lbl_sec_prob.configure(fg=acento)
@@ -1077,6 +1335,8 @@ class ConsolaMision(tk.Frame):
             return
         self._cancelar_timer()
         self._cerrar_modal_hud()
+        self._cerrar_modal_guia()
+        self._ocultar_tooltip()
         self._verificando = False
         self._micro_pausas_intento = 0
         self._foco_perdido = False
@@ -1198,6 +1458,9 @@ class ConsolaMision(tk.Frame):
         self.lbl_progreso_paso.config(text=f"PASO {self.paso_idx + 1} DE {len(pasos)}")
         self.lbl_paso_titulo.config(text=paso["titulo"])
         self.lbl_pregunta.config(text=paso["pregunta"])
+        tip = str(paso.get("tooltip", "")).strip()
+        self.lbl_tooltip_input.config(text=f"Guia del campo: {tip}" if tip else "")
+        self._ocultar_tooltip()
 
         self.entry_resp.pack_forget()
         self.frame_opciones.pack_forget()
@@ -1273,17 +1536,21 @@ class ConsolaMision(tk.Frame):
             if not correcto:
                 self.errores_intento += 1
                 self.estado.registrar_error(self.nombre_metodo)
-                self._penalizacion_seg += 8.0
                 self._actualizar_indicador_estrellas()
-                self.oxigeno_restante = max(0.0, self.oxigeno_total - self._penalizacion_seg - (time.time() - self.tiempo_inicio))
-                self._refrescar_oxigeno_ui()
-                if self.oxigeno_restante <= 0.0:
-                    self._manejar_sin_oxigeno()
-                    return
-                if self.estado.es_modo_examen:
-                    msg_err = "INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pistas deshabilitadas en Modo Examen."
+                if self._esta_sin_tiempo():
+                    self._refrescar_oxigeno_ui()
+                    msg_err = f"INCORRECTO (-0.5 estrella | Sin limite de tiempo). Pista: {paso['pista']}"
                 else:
-                    msg_err = f"INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pista: {paso['pista']}"
+                    self._penalizacion_seg += 8.0
+                    self.oxigeno_restante = max(0.0, self.oxigeno_total - self._penalizacion_seg - (time.time() - self.tiempo_inicio))
+                    self._refrescar_oxigeno_ui()
+                    if self.oxigeno_restante <= 0.0:
+                        self._manejar_sin_oxigeno()
+                        return
+                    if self.estado.es_modo_examen:
+                        msg_err = "INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pistas deshabilitadas en Modo Examen."
+                    else:
+                        msg_err = f"INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pista: {paso['pista']}"
                 self.lbl_feedback.config(text=msg_err, fg=CORAL)
                 return
 
@@ -1324,6 +1591,10 @@ class ConsolaMision(tk.Frame):
             self._verificando = False
 
     def _refrescar_oxigeno_ui(self) -> None:
+        if self._esta_sin_tiempo():
+            self.lbl_oxigeno.config(text="OXIGENO: LIBRE [DOCENTE]", fg=ESMERALDA)
+            self._dibujar_barra_oxigeno(1.0)
+            return
         color = ROJO_OXIGENO if self.oxigeno_restante <= 25 else AMBAR
         suf = " [EXAM]" if self.estado.es_modo_examen else ""
         self.lbl_oxigeno.config(text=f"OXIGENO: {int(math.ceil(self.oxigeno_restante))} s{suf}", fg=color)
@@ -1348,6 +1619,10 @@ class ConsolaMision(tk.Frame):
     def _tick_oxigeno(self) -> None:
         self._after_id = None
         if not self.activo or not self.winfo_exists():
+            return
+        if self._esta_sin_tiempo():
+            self._refrescar_oxigeno_ui()
+            self._after_id = self.after(350, self._tick_oxigeno)
             return
         self.oxigeno_restante = self.oxigeno_total - self._penalizacion_seg - (time.time() - self.tiempo_inicio)
         if self.oxigeno_restante <= 0:

@@ -52,6 +52,61 @@ def _potencia_segura(base: float, exp: float) -> float:
     return float(res)
 
 
+def _expandir_factoriales(expr: str) -> str:
+    """Convierte notacion postfija 'n!' y '(expr)!' en llamadas 'fact(...)'."""
+    if "!" not in expr:
+        return expr
+    out: list[str] = []
+    i = 0
+    n = len(expr)
+    while i < n:
+        ch = expr[i]
+        if ch != "!" or (i + 1 < n and expr[i + 1] == "="):
+            out.append(ch)
+            i += 1
+            continue
+
+        j = len(out) - 1
+        while j >= 0 and out[j].isspace():
+            j -= 1
+        if j < 0:
+            out.append(ch)
+            i += 1
+            continue
+
+        if out[j] == ")":
+            prof = 1
+            k = j - 1
+            while k >= 0 and prof > 0:
+                if out[k] == ")":
+                    prof += 1
+                elif out[k] == "(":
+                    prof -= 1
+                k -= 1
+            if prof != 0:
+                out.append(ch)
+                i += 1
+                continue
+            while k >= 0 and (out[k].isalnum() or out[k] == "_"):
+                k -= 1
+            inicio = k + 1
+        elif out[j].isdigit() or out[j] == "." or out[j].isalpha() or out[j] == "_":
+            k = j
+            while k >= 0 and (out[k].isalnum() or out[k] in "._"):
+                k -= 1
+            inicio = k + 1
+        else:
+            out.append(ch)
+            i += 1
+            continue
+
+        operando = "".join(out[inicio : j + 1])
+        del out[inicio:]
+        out.extend(list(f"fact({operando})"))
+        i += 1
+    return "".join(out)
+
+
 def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = False) -> float:
     """Evalua una expresion matematica usando whitelist estricto sobre ast.parse."""
     if not isinstance(expr, str):
@@ -70,6 +125,7 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
         .replace("–", "-")
         .replace("π", "pi")
     )
+    normalizada = _expandir_factoriales(normalizada)
 
     try:
         arbol = ast.parse(normalizada, mode="eval")
@@ -139,6 +195,18 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
             raise ValueError("Raiz cuadrada de numero negativo")
         return math.sqrt(x)
 
+    def _factorial(x: float) -> float:
+        if not math.isfinite(x):
+            raise ValueError("Factorial requiere numero finito")
+        if abs(x - round(x)) > 1e-9:
+            raise ValueError("Factorial solo aplica a enteros no negativos")
+        n = int(round(x))
+        if n < 0:
+            raise ValueError("Factorial requiere entero >= 0")
+        if n > 170:
+            raise OverflowError("Factorial maximo soportado: 170!")
+        return float(math.factorial(n))
+
     funciones = {
         "sin": (_trig_sin, 1, 1),
         "sen": (_trig_sin, 1, 1),
@@ -158,6 +226,8 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
         "exp": (_exp, 1, 1),
         "sqrt": (_sqrt, 1, 1),
         "raiz": (_sqrt, 1, 1),
+        "fact": (_factorial, 1, 1),
+        "factorial": (_factorial, 1, 1),
         "abs": (abs, 1, 1),
         "pow": (_potencia_segura, 2, 2),
         "round": (round, 1, 2),
@@ -344,12 +414,17 @@ class CalculadoraCientifica(tk.Frame):
         )
         self.lbl_error.pack(fill=tk.X, pady=(0, 2))
 
-        grid = tk.Frame(self, bg=bg)
-        grid.pack(fill=tk.BOTH, expand=True)
-        for c in range(6):
-            grid.columnconfigure(c, weight=1)
+        estilos = {
+            "num": ("#2C234B", CREMA, "#3B2F63"),
+            "op": ("#241B3E", DORADO, "#342859"),
+            "fn": ("#1C1533", GRIS_CALIDO, "#2D234D"),
+            "const": ("#20183B", AMBAR, "#32265A"),
+            "ctrl": ("#3D253B", CREMA, "#543250"),
+            "ctrl_danger": ("#592234", CREMA, "#7A2D46"),
+            "eq": (ESMERALDA, FONDO_GALAXIA, "#7CF0B8"),
+        }
 
-        teclas = [
+        teclas_sci = [
             [
                 ("sin", "sin(", "fn"),
                 ("cos", "cos(", "fn"),
@@ -357,15 +432,20 @@ class CalculadoraCientifica(tk.Frame):
                 ("ln", "ln(", "fn"),
                 ("log", "log(", "fn"),
                 ("exp", "exp(", "fn"),
+                ("n!", "!", "op"),
             ],
             [
                 ("asin", "asin(", "fn"),
                 ("acos", "acos(", "fn"),
                 ("atan", "atan(", "fn"),
                 ("sqrt", "sqrt(", "fn"),
+                ("abs", "abs(", "fn"),
                 ("(", "(", "op"),
                 (")", ")", "op"),
             ],
+        ]
+
+        teclas_num = [
             [
                 ("7", "7", "num"),
                 ("8", "8", "num"),
@@ -393,50 +473,15 @@ class CalculadoraCientifica(tk.Frame):
             [
                 ("0", "0", "num"),
                 (".", ".", "num"),
-                ("abs", "abs(", "fn"),
+                ("x^3", "^3", "op"),
                 ("+", "+", "op"),
                 ("x^2", "^2", "op"),
                 ("=", None, "eq"),
             ],
         ]
 
-        estilos = {
-            "num": ("#2C234B", CREMA, "#3B2F63"),
-            "op": ("#241B3E", DORADO, "#342859"),
-            "fn": ("#1C1533", GRIS_CALIDO, "#2D234D"),
-            "const": ("#20183B", AMBAR, "#32265A"),
-            "ctrl": ("#3D253B", CREMA, "#543250"),
-            "ctrl_danger": ("#592234", CREMA, "#7A2D46"),
-            "eq": (ESMERALDA, FONDO_GALAXIA, "#7CF0B8"),
-        }
-
-        for r_idx, fila in enumerate(teclas):
-            grid.rowconfigure(r_idx, weight=1)
-            for c_idx, (etiqueta, token, tipo) in enumerate(fila):
-                bg_b, fg_b, act_b = estilos[tipo]
-                if etiqueta == "DEL":
-                    cmd = self._borrar_uno
-                elif etiqueta == "AC":
-                    cmd = self._limpiar_todo
-                elif etiqueta == "=":
-                    cmd = self.calcular
-                else:
-                    cmd = lambda t=token: self._insertar(t)
-
-                btn = tk.Button(
-                    grid,
-                    text=etiqueta,
-                    font=("Consolas", 9, "bold"),
-                    bg=bg_b,
-                    fg=fg_b,
-                    activebackground=act_b,
-                    activeforeground=fg_b,
-                    bd=0,
-                    pady=3,
-                    cursor="hand2",
-                    command=cmd,
-                )
-                btn.grid(row=r_idx, column=c_idx, sticky="nsew", padx=1, pady=1)
+        self._poblar_cuadricula(bg, 7, teclas_sci, estilos, expand=False, pady_grid=(0, 2))
+        self._poblar_cuadricula(bg, 6, teclas_num, estilos, expand=True)
 
         barra_acciones = tk.Frame(self, bg=bg)
         barra_acciones.pack(fill=tk.X, pady=(4, 0))
@@ -470,6 +515,38 @@ class CalculadoraCientifica(tk.Frame):
             command=self._enviar_actual,
         )
         self.btn_enviar.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(4, 0))
+
+    def _poblar_cuadricula(self, bg: str, cols: int, filas, estilos: dict, expand: bool = True, pady_grid=0) -> None:
+        grid = tk.Frame(self, bg=bg)
+        grid.pack(fill=tk.BOTH, expand=expand, pady=pady_grid)
+        for c in range(cols):
+            grid.columnconfigure(c, weight=1)
+        for r_idx, fila in enumerate(filas):
+            grid.rowconfigure(r_idx, weight=1)
+            for c_idx, (etiqueta, token, tipo) in enumerate(fila):
+                bg_b, fg_b, act_b = estilos[tipo]
+                if etiqueta == "DEL":
+                    cmd = self._borrar_uno
+                elif etiqueta == "AC":
+                    cmd = self._limpiar_todo
+                elif etiqueta == "=":
+                    cmd = self.calcular
+                else:
+                    cmd = lambda t=token: self._insertar(t)
+
+                tk.Button(
+                    grid,
+                    text=etiqueta,
+                    font=("Consolas", 9, "bold"),
+                    bg=bg_b,
+                    fg=fg_b,
+                    activebackground=act_b,
+                    activeforeground=fg_b,
+                    bd=0,
+                    pady=3,
+                    cursor="hand2",
+                    command=cmd,
+                ).grid(row=r_idx, column=c_idx, sticky="nsew", padx=1, pady=1)
 
     def establecer_clipboard_bloqueado(self, bloqueado: bool) -> None:
         self.permitir_clipboard = not bloqueado

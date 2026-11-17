@@ -51,6 +51,7 @@ class EstadoJuego:
         self.matricula: str = ""
         self.integridad_verificada: bool = True
         self.ultimo_error_carga: Optional[str] = None
+        self._sin_limite_tiempo: bool = False
         self.perfiles: Dict[str, Dict[str, Any]] = {
             "practica": _nuevo_perfil_vacio(),
             "examen": _nuevo_perfil_vacio(),
@@ -103,6 +104,18 @@ class EstadoJuego:
     @property
     def es_modo_examen(self) -> bool:
         return self.modo_actual == "examen"
+
+    @property
+    def sin_limite_tiempo(self) -> bool:
+        return (not self.es_modo_examen) and self._sin_limite_tiempo
+
+    def establecer_sin_limite_tiempo(self, activo: bool) -> bool:
+        """Permite modo sin límite de tiempo para revisión docente SOLO fuera de Modo Examen."""
+        if self.es_modo_examen:
+            self._sin_limite_tiempo = False
+            return False
+        self._sin_limite_tiempo = bool(activo)
+        return self._sin_limite_tiempo
 
     @staticmethod
     def _normalizar_perfil(raw: Any) -> Dict[str, Any]:
@@ -244,6 +257,8 @@ class EstadoJuego:
 
     def establecer_modo(self, modo: str, alumno: Optional[str] = None, matricula: Optional[str] = None) -> None:
         self.modo_actual = "examen" if modo == "examen" else "practica"
+        if self.es_modo_examen:
+            self._sin_limite_tiempo = False
         if alumno is not None:
             self.alumno = alumno.strip()
         if matricula is not None:
@@ -252,6 +267,7 @@ class EstadoJuego:
 
     def iniciar_nuevo_examen(self, alumno: str, matricula: str) -> None:
         self.modo_actual = "examen"
+        self._sin_limite_tiempo = False
         self.alumno = alumno.strip()
         self.matricula = matricula.strip().upper()
         self.perfiles["examen"] = _nuevo_perfil_vacio()

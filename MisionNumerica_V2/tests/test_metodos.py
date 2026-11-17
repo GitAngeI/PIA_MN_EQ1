@@ -1,4 +1,4 @@
-"""Suite de validación"""
+"""Suite de validación contra los PDFs oficiales de la Ing. Oralia Zamora Pequeño."""
 
 import csv
 import json
@@ -302,10 +302,32 @@ class TestMetodosOficiales(unittest.TestCase):
                 root.destroy()
 
     def test_v4_calculadora_cientifica_ast_segura(self):
+        from MisionNumerica_V2.ui.calculadora import CalculadoraCientifica
+
         self.assertAlmostEqual(evaluar_expresion_segura("2^3 + sqrt(16) - ln(e)"), 11.0, places=9)
         self.assertAlmostEqual(evaluar_expresion_segura("sin(30) + cos(60)", modo_grados=True), 1.0, places=9)
         self.assertAlmostEqual(evaluar_expresion_segura("ans * 2 + log(100)", ans=4.5), 11.0, places=9)
         self.assertAlmostEqual(evaluar_expresion_segura("sen(pi/2)", modo_grados=False), 1.0, places=9)
+
+        # Factorial postfijo (!), expresiones agrupadas y fact()/factorial() para Newton
+        self.assertEqual(evaluar_expresion_segura("0!"), 1.0)
+        self.assertEqual(evaluar_expresion_segura("5!"), 120.0)
+        self.assertEqual(evaluar_expresion_segura("(2+3)!"), 120.0)
+        self.assertEqual(evaluar_expresion_segura("-3!"), -6.0)
+        self.assertEqual(evaluar_expresion_segura("3!!"), 720.0)
+        self.assertEqual(evaluar_expresion_segura("fact(4) + factorial(3)"), 30.0)
+        self.assertAlmostEqual(evaluar_expresion_segura("1.5 * (1.5 - 1) * (1.5 - 2) / 3!"), -0.0625, places=9)
+
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            calc = CalculadoraCientifica(root)
+            calc.entry_expr.insert(0, "4")
+            calc._insertar("!")
+            self.assertEqual(calc.calcular(), 24.0)
+            calc.destroy()
+        finally:
+            root.destroy()
 
         for peligrosa in (
             "__import__('os').system('echo x')",
@@ -315,6 +337,10 @@ class TestMetodosOficiales(unittest.TestCase):
             "ln(-2)",
             "sqrt(-9)",
             "1/0",
+            "3.5!",
+            "(-3)!",
+            "171!",
+            "!5",
         ):
             with self.assertRaises((ValueError, OverflowError, ZeroDivisionError)):
                 evaluar_expresion_segura(peligrosa)
@@ -538,6 +564,94 @@ class TestMetodosOficiales(unittest.TestCase):
                     app.update()
             finally:
                 app.destroy()
+
+    def test_v4_1_mejoras_pia_y_formulas_oralia(self):
+        from MisionNumerica_V2.ui.guias_metodos import GUIAS_METODOS
+        from MisionNumerica_V2.ui.formulas_latex import LATEX_METODOS, renderizar_formula_tk
+
+        # Cobertura completa de guias 3 pasos y LaTeX sin puntos suspensivos
+        self.assertEqual(set(TODOS_LOS_METODOS), set(GUIAS_METODOS.keys()))
+        self.assertEqual(set(TODOS_LOS_METODOS), set(LATEX_METODOS.keys()))
+        for met, guia in GUIAS_METODOS.items():
+            self.assertEqual(len(guia["pasos_guia"]), 3, met)
+            self.assertTrue(guia["ecuaciones"].strip(), met)
+        self.assertNotIn(r"\cdots", LATEX_METODOS["Newton hacia adelante"])
+        self.assertNotIn(r"\dots", LATEX_METODOS["Runge - Kutta 3er Orden"])
+
+        # Temporizadores escalonados (240s basico, 360s intermedio, 480-600s avanzado)
+        self.assertEqual(generar_mision("Interpolación lineal", random.Random(1))["oxigeno_seg"], 240)
+        self.assertEqual(generar_mision("Linea Recta", random.Random(1))["oxigeno_seg"], 360)
+        self.assertEqual(generar_mision("Montante", random.Random(1))["oxigeno_seg"], 480)
+        self.assertEqual(generar_mision("Newton – Cotes Abiertas", random.Random(1))["oxigeno_seg"], 540)
+        self.assertEqual(generar_mision("Euler Modificado", random.Random(1))["oxigeno_seg"], 540)
+        self.assertEqual(generar_mision("Runge - Kutta 3er Orden", random.Random(1))["oxigeno_seg"], 600)
+
+        # Linea Recta: notacion Ing. Oralia g(x)=a0+a1*x + todas las sumatorias (n, sum x, sum y, sum x^2, sum xy)
+        m_lr = generar_mision("Linea Recta", random.Random(3))
+        self.assertIn("a0 + a1*x", m_lr["formula"])
+        self.assertIn("sum x^2", m_lr["formula"])
+        tp_lr_txt = " ".join(str(x) for fila in m_lr["tabla_progresiva"]["filas"] for x in fila["valores"])
+        for token in ("sum x_i", "sum y_i", "sum x_i^2", "sum (x_i*y_i)"):
+            self.assertIn(token, tp_lr_txt)
+
+        # Newton-Cotes Abiertas muestra (b - a) / (n + 2) y pesos c_i en datos_tabla
+        m_nca = generar_mision("Newton – Cotes Abiertas", random.Random(2))
+        self.assertIn("n + 2", m_nca["formula"])
+        datos_nca_txt = " ".join(str(x) for row in m_nca["datos_tabla"][1] for x in row)
+        self.assertIn("n + 2", datos_nca_txt.replace("+2", " + 2"))
+
+        # EDO muestra f(y, t) explicitamente y RK3 inicia por k1
+        m_em = generar_mision("Euler Modificado", seed_id="P0-100001")
+        self.assertIn("f(y, t)", m_em["pasos"][0]["pregunta"])
+        self.assertIn("y*_{n+1}", m_em["formula"])
+        self.assertIn("y'_{n+1}", m_em["formula"])
+        m_rk3 = generar_mision("Runge - Kutta 3er Orden", random.Random(5))
+        self.assertIn("k1", m_rk3["pasos"][0]["titulo"])
+        self.assertIn("f(y, t)", m_rk3["pasos"][0]["pregunta"])
+
+        # Modo Sin Tiempo solo permitido fuera de Modo Examen y UI embebida segura (? GUIA + Tooltips)
+        with tempfile.TemporaryDirectory() as tmp:
+            est = EstadoJuego(ruta=os.path.join(tmp, "rev.json"))
+            self.assertTrue(est.establecer_sin_limite_tiempo(True))
+            self.assertTrue(est.sin_limite_tiempo)
+            est.establecer_modo("examen", "Ana Lopez", "2099888")
+            self.assertFalse(est.sin_limite_tiempo)
+            self.assertFalse(est.establecer_sin_limite_tiempo(True))
+
+            est.establecer_modo("practica")
+            est.establecer_sin_limite_tiempo(True)
+            root = tk.Tk()
+            root.attributes("-alpha", 0.0)
+            root.geometry("980x640+-4000+-4000")
+            try:
+                for m in ("Linea Recta", "Euler Modificado", "Newton – Cotes Abiertas"):
+                    self.assertIsNotNone(renderizar_formula_tk(LATEX_METODOS[m], "#FFD166"))
+
+                con = ConsolaMision(root, "Euler Modificado", est, al_volver=lambda: None)
+                con.pack(fill="both", expand=True)
+                root.update()
+
+                self.assertIn("LIBRE", con.lbl_oxigeno.cget("text"))
+                self.assertTrue(con.lbl_tooltip_input.cget("text"))
+
+                # Modal ? GUIA embebido (sin crear ningun Toplevel hijo!)
+                con._abrir_modal_guia()
+                root.update()
+                self.assertIsNotNone(con._guia_overlay)
+                self.assertEqual([c for c in root.winfo_children() if isinstance(c, tk.Toplevel)], [])
+                con._cerrar_modal_guia()
+                root.update()
+                self.assertIsNone(con._guia_overlay)
+
+                # Verificar sin tiempo sigue deduciendo -0.5 estrellas sin abortar
+                con.entry_resp.insert(0, "99999")
+                con._verificar_paso()
+                self.assertEqual(con.errores_intento, 1)
+                self.assertTrue(con.activo)
+
+                con.destroy()
+            finally:
+                root.destroy()
 
 
 if __name__ == "__main__":

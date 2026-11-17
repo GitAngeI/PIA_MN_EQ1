@@ -73,6 +73,7 @@ class NaveAuroraApp(tk.Tk):
         self.var_modo = tk.StringVar(value=self.estado.modo_actual)
         self.var_alumno = tk.StringVar(value=self.estado.alumno)
         self.var_matricula = tk.StringVar(value=self.estado.matricula)
+        self.var_sin_tiempo = tk.BooleanVar(value=self.estado.sin_limite_tiempo)
 
         self.contenedor = tk.Frame(self, bg=FONDO_GALAXIA)
         self.contenedor.pack(fill="both", expand=True)
@@ -213,6 +214,7 @@ class NaveAuroraApp(tk.Tk):
         self.var_modo.set(self.estado.modo_actual)
         self.var_alumno.set(self.estado.alumno)
         self.var_matricula.set(self.estado.matricula)
+        self.var_sin_tiempo.set(self.estado.sin_limite_tiempo)
 
         _, inner = self._crear_contenedor_scroll(self.contenedor, bg=FONDO_GALAXIA)
         inner.columnconfigure(0, weight=1)
@@ -254,10 +256,42 @@ class NaveAuroraApp(tk.Tk):
         )
         btn_exam.pack(side="left")
 
+        def _alternar_sin_tiempo():
+            es_ex = self.var_modo.get() == "examen"
+            if es_ex:
+                self.var_sin_tiempo.set(False)
+                self.estado.establecer_sin_limite_tiempo(False)
+                return
+            nuevo = self.estado.establecer_sin_limite_tiempo(bool(self.var_sin_tiempo.get()))
+            self.var_sin_tiempo.set(nuevo)
+
+        fila_rev = tk.Frame(panel_perfil, bg="#120E20")
+        fila_rev.pack(fill="x", pady=(0, 8))
+        chk_libre = tk.Checkbutton(
+            fila_rev,
+            text="Modo Evaluacion / Sin Limite de Tiempo (solo en Practica para revisar sin prisa)",
+            variable=self.var_sin_tiempo,
+            command=_alternar_sin_tiempo,
+            bg="#120E20",
+            fg=DORADO,
+            selectcolor=PANEL_ELEVADO,
+            activebackground="#120E20",
+            activeforeground=DORADO,
+            disabledforeground=GRIS_CALIDO,
+            font=("Segoe UI", 10, "bold"),
+            cursor="hand2",
+        )
+        chk_libre.pack(side="left")
+
         def _pintar_botones_modo():
             es_ex = self.var_modo.get() == "examen"
             btn_prac.config(bg=PANEL_ELEVADO if es_ex else ESMERALDA, fg=CREMA if es_ex else FONDO_GALAXIA)
             btn_exam.config(bg=ROJO_OXIGENO if es_ex else PANEL_ELEVADO, fg=CREMA)
+            if es_ex:
+                self.var_sin_tiempo.set(False)
+                chk_libre.config(state="disabled")
+            else:
+                chk_libre.config(state="normal")
 
         self._pintar_botones_modo_cb = _pintar_botones_modo
         _pintar_botones_modo()

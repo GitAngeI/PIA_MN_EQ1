@@ -60,6 +60,7 @@ def _paso_num(
     esperado: float,
     pista: str,
     tolerancia: float = 0.02,
+    tooltip: str = "",
 ) -> Dict[str, Any]:
     return {
         "tipo": "numero",
@@ -68,6 +69,7 @@ def _paso_num(
         "esperado": float(esperado),
         "tolerancia": float(tolerancia),
         "pista": pista,
+        "tooltip": tooltip or f"Ingresa el valor numerico de {titulo.split(':')[-1].strip()} (tol. +- {tolerancia}).",
     }
 
 
@@ -77,6 +79,7 @@ def _paso_opcion(
     opciones: List[str],
     indice_correcto: int,
     pista: str,
+    tooltip: str = "",
 ) -> Dict[str, Any]:
     return {
         "tipo": "opcion",
@@ -85,6 +88,7 @@ def _paso_opcion(
         "opciones": opciones,
         "indice_correcto": int(indice_correcto),
         "pista": pista,
+        "tooltip": tooltip or f"Elige la opcion correcta para {titulo.split(':')[-1].strip()}.",
     }
 
 
@@ -381,69 +385,75 @@ def _construir_no_uniforme(r: random.Random, usar_lagrange: bool, tema: str) -> 
         formula = "g(x) = sum_{i=1..n} y_i * L_i(x),   L_i(x) = prod_{j!=i} (x - x_j)/(x_i - x_j)"
         g_fn = lambda t: lagrange(xs, ys, t)["gx"]
         filas_tp = [
-            {"paso_min": 1, "valores": ["L1(x)", f"Nodo x1={xs[0]}", _red(res["bases"][0], 4)]},
-            {"paso_min": 2, "valores": ["L2(x)", f"Nodo x2={xs[1]}", _red(res["bases"][1], 4)]},
-            {"paso_min": 2, "valores": ["L3(x)", f"Nodo x3={xs[2]}", _red(res["bases"][2], 4)]},
-            {"paso_min": 3, "valores": [f"g({x_eval})", "y1*L1 + y2*L2 + y3*L3", _red(res["gx"], 4)]},
+            {"paso_min": 1, "valores": ["L1(x)", f"Producto sin x1={xs[0]}", _red(res["bases"][0], 4)]},
+            {"paso_min": 2, "valores": ["L2(x)", f"Producto sin x2={xs[1]}", _red(res["bases"][1], 4)]},
+            {"paso_min": 2, "valores": ["L3(x)", f"Producto sin x3={xs[2]}", _red(res["bases"][2], 4)]},
+            {"paso_min": 3, "valores": [f"g({x_eval})", "sum y_i * L_i(x)", _red(res["gx"], 4)]},
         ]
         pasos = [
             _paso_num(
                 "Paso 1: Base L1(x)",
                 f"Calcula L1({x_eval}) = [({x_eval}-x2)({x_eval}-x3)] / [(x1-x2)(x1-x3)]:",
                 res["bases"][0],
-                "Sustituye x2 y x3 en el numerador y divide entre (x1 - x2)*(x1 - x3).",
-                0.015,
+                "Sustituye x2, x3 en numerador y divide entre (x1-x2)*(x1-x3).",
+                0.02,
+                tooltip="Multiplicador L1(x) de Lagrange (dimensionless, i=1 usa nodos x2 y x3).",
             ),
             _paso_num(
                 "Paso 2: Base L2(x)",
                 f"Calcula L2({x_eval}) = [({x_eval}-x1)({x_eval}-x3)] / [(x2-x1)(x2-x3)]:",
                 res["bases"][1],
-                "Cuida el signo de (x2 - x1) y (x2 - x3) en el denominador.",
-                0.015,
+                "Ojo con el signo de (x2 - x1) y (x2 - x3) en el denominador.",
+                0.02,
+                tooltip="Multiplicador L2(x) (nota: siempre se cumple L1 + L2 + L3 = 1).",
             ),
             _paso_num(
                 "Paso 3: Polinomio g(x)",
                 f"Calcula g({x_eval}) = y1*L1 + y2*L2 + y3*L3:",
                 res["gx"],
-                "Calcula L3(x) (recuerda que L1 + L2 + L3 = 1) y suma los productos y_i * L_i(x).",
-                0.02,
+                "Calcula L3 = 1 - L1 - L2 y suma los productos y_i * L_i.",
+                0.03,
+                tooltip=f"Valor interpolado g({x_eval}) combinando los 3 nodos tabulados.",
             ),
         ]
     else:
         res = newton_diferencias_divididas(xs, ys, x_eval)
         metodo = "Newton con diferencias divididas"
-        formula = "D_{k,i} = (D_{k-1,i+1} - D_{k-1,i})/(x_{i+k} - x_i)   |   g(x) = y1 + D_{1,1}(x-x1) + D_{2,1}(x-x1)(x-x2)"
+        formula = "D1,i=(y_{i+1}-y_i)/(x_{i+1}-x_i)   |   g(x)=y1 + D1,1*(x-x1) + D2,1*(x-x1)*(x-x2)"
         g_fn = lambda t: newton_diferencias_divididas(xs, ys, t)["gx"]
-        y1, d1_1, d2_1 = res["coeficientes"]
+        d0, d1, d2 = res["coeficientes"]
         d1_2 = res["tabla"][1][1]
         filas_tp = [
-            {"paso_min": 0, "valores": ["y1", f"y({xs[0]})", _red(y1, 4)]},
-            {"paso_min": 1, "valores": ["D1,1", f"(y2-y1)/({xs[1]}-{xs[0]})", _red(d1_1, 4)]},
+            {"paso_min": 0, "valores": ["D0 = y1", f"f({xs[0]})", _red(d0, 4)]},
+            {"paso_min": 1, "valores": ["D1,1", f"(y2-y1)/({xs[1]}-{xs[0]})", _red(d1, 4)]},
             {"paso_min": 1, "valores": ["D1,2", f"(y3-y2)/({xs[2]}-{xs[1]})", _red(d1_2, 4)]},
-            {"paso_min": 2, "valores": ["D2,1", f"(D1,2-D1,1)/({xs[2]}-{xs[0]})", _red(d2_1, 4)]},
-            {"paso_min": 3, "valores": [f"g({x_eval})", "serie de Newton", _red(res["gx"], 4)]},
+            {"paso_min": 2, "valores": ["D2,1", "(D1,2 - D1,1)/(x3 - x1)", _red(d2, 4)]},
+            {"paso_min": 3, "valores": [f"g({x_eval})", "polinomio Newton", _red(res["gx"], 4)]},
         ]
         pasos = [
             _paso_num(
                 "Paso 1: Primera diferencia D1,1",
                 "Calcula D1,1 = (y2 - y1) / (x2 - x1):",
-                d1_1,
-                "Divide el incremento (y2 - y1) entre (x2 - x1) usando las filas 1 y 2.",
-                0.015,
+                d1,
+                "Divide el incremento (y2 - y1) entre (x2 - x1) usando fila 1 y fila 2.",
+                0.02,
+                tooltip="Pendiente dividida de primer orden D1,1 entre el primer par de puntos.",
             ),
             _paso_num(
                 "Paso 2: Segunda diferencia D2,1",
                 "Calcula D2,1 = (D1,2 - D1,1) / (x3 - x1):",
-                d2_1,
-                "Calcula primero D1,2 = (y3 - y2)/(x3 - x2) y luego divide (D1,2 - D1,1) entre (x3 - x1).",
-                0.015,
+                d2,
+                "Calcula primero D1,2 = (y3-y2)/(x3-x2) y luego divide (D1,2 - D1,1) entre (x3 - x1).",
+                0.02,
+                tooltip="Segunda diferencia dividida D2,1 (divisor externo x3 - x1).",
             ),
             _paso_num(
                 "Paso 3: Estimacion g(x)",
-                f"Calcula g({x_eval}) = y1 + D1,1*(x - x1) + D2,1*(x - x1)*(x - x2):",
+                f"Calcula g({x_eval}) = D0 + D1,1*(x-x1) + D2,1*(x-x1)*(x-x2):",
                 res["gx"],
-                f"Sustituye y1, D1,1 y D2,1 evaluando en x = {x_eval}.",
-                0.02,
+                "Sustituye D0=y1, D1,1, D2,1 y evalua en el valor objetivo x.",
+                0.03,
+                tooltip=f"Aproximacion polinomial g({x_eval}) por diferencias divididas.",
             ),
         ]
 
@@ -451,10 +461,10 @@ def _construir_no_uniforme(r: random.Random, usar_lagrange: bool, tema: str) -> 
     return {
         "metodo": metodo,
         "sala_id": 1,
-        "oxigeno_seg": 190,
+        "oxigeno_seg": 360,
         "formula": formula,
         "enunciado": f"Muestreo de {titulo_ctx} con nodos no equidistantes. Determina el valor interpolado g({x_eval}) mediante {metodo}.",
-        "datos_tabla": (["i", "x_i", "y_i"], [[i + 1, xs[i], ys[i]] for i in range(3)]),
+        "datos_tabla": (["i", "x_i", "y_i = f(x_i)"], [[i + 1, xs[i], ys[i]] for i in range(3)]),
         "tabla_progresiva": {"titulo": f"Construccion ({metodo})", "columnas": ["Termino", "Formula", "Valor"], "filas": filas_tp},
         "grafica": {
             "tipo": "funcion",
@@ -669,30 +679,24 @@ def _construir_raiz_abierta(r: random.Random, metodo: str, modo: str) -> Dict[st
             q = r.choice([2, 4, 5])
             f = lambda x, p=p, q=q: x ** 3 - p * x - q
             f_txt = f"x^3 - {p}x - {q}"
-            x0, x1 = 1.5, 2.5
+            x_0, x_1 = 1.5, 2.5
         else:
             k = round(r.uniform(0.5, 0.9), 2)
             f = lambda x, k=k: x ** 2 - k * math.cos(x) - 1.0
             f_txt = f"x^2 - {k}*cos(x) - 1   (x en rad)"
-            x0, x1 = 1.0, 2.0
-        res = metodo_secante(f, x0, x1, tol=1e-9, max_iter=6)
+            x_0, x_1 = 1.0, 2.0
+        res = metodo_secante(f, x_0, x_1, tol=1e-9, max_iter=6)
         its = res["iteraciones"]
         it1, it2 = its[0], its[1]
-        curva = _muestrear_curva(f, min(x0, it2["x_sig"]) - 0.5, max(x1, it2["x_sig"]) + 0.5)
-        filas_tp = [
-            {"paso_min": idx, "valores": [it["iter"], _red(it["x_ant"], 4), _red(it["x_act"], 4), _red(it["x_sig"], 4)]}
-            for idx, it in enumerate(its, start=1)
-        ]
+        curva = _muestrear_curva(f, min(x_0, it2["x_sig"]) - 0.5, max(x_1, it2["x_sig"]) + 0.5)
+        filas_tp = [{"paso_min": idx, "valores": [it["iter"], _red(it["x_ant"], 4), _red(it["x_act"], 4), _red(it["x_sig"], 4)]} for idx, it in enumerate(its, start=1)]
         return {
             "metodo": metodo,
             "sala_id": 2,
-            "oxigeno_seg": 180,
+            "oxigeno_seg": 360,
             "formula": "x_{i+1} = x_i - [f(x_i)*(x_i - x_{i-1})] / [f(x_i) - f(x_{i-1})]",
-            "enunciado": f"Aplica el metodo de la Secante a f(x) = {f_txt} partiendo de los valores iniciales x0 = {x0} y x1 = {x1}.",
-            "datos_tabla": (
-                ["Parametro", "Valor"],
-                [["f(x)", f_txt], ["x0", x0], ["x1", x1], ["f(x0)", _red(f(x0), 4)], ["f(x1)", _red(f(x1), 4)]],
-            ),
+            "enunciado": f"Aplica el metodo de la Secante a f(x) = {f_txt} con valores iniciales x0 = {x_0} y x1 = {x_1}.",
+            "datos_tabla": (["Parametro", "Valor"], [["f(x)", f_txt], ["x0", x_0], ["x1", x_1], ["f(x0)", _red(f(x_0), 4)], ["f(x1)", _red(f(x_1), 4)]]),
             "tabla_progresiva": {"titulo": "Iteraciones Secante", "columnas": ["Iter", "x_{i-1}", "x_i", "x_{i+1}"], "filas": filas_tp},
             "grafica": {
                 "tipo": "funcion",
@@ -706,27 +710,9 @@ def _construir_raiz_abierta(r: random.Random, metodo: str, modo: str) -> Dict[st
                 ],
             },
             "pasos": [
-                _paso_num(
-                    "Paso 1: Primera aproximacion x2 (Iter 1)",
-                    f"Con x0={x0} y x1={x1}, calcula la primera aproximacion x2:",
-                    it1["x_sig"],
-                    "Aplica x2 = x1 - f(x1)*(x1 - x0) / (f(x1) - f(x0)).",
-                    0.025,
-                ),
-                _paso_num(
-                    "Paso 2: Segunda aproximacion x3 (Iter 2)",
-                    "Usa ahora x1 y x2 para calcular la siguiente aproximacion x3:",
-                    it2["x_sig"],
-                    "Evalua f(x2) y aplica la formula de la secante entre x1 y x2.",
-                    0.025,
-                ),
-                _paso_num(
-                    "Paso 3: Error aproximado",
-                    "Calcula el error absoluto e = |x3 - x2|:",
-                    it2["error"],
-                    "Toma el valor absoluto de la diferencia entre x3 y x2.",
-                    0.02,
-                ),
+                _paso_num("Paso 1: Calcular x2", f"Con x0={x_0}, x1={x_1} y f(x)={f_txt}, calcula x2:", it1["x_sig"], "Aplica x2 = x1 - f(x1)*(x1 - x0) / (f(x1) - f(x0)).", 0.025, tooltip="Primera raiz aproximada x2 usando la recta secante entre x0 y x1."),
+                _paso_num("Paso 2: Calcular x3", f"Usa ahora x1 y x2 para calcular x3 (f(x)={f_txt}):", it2["x_sig"], "Evalua f(x2) y aplica la secante entre x1 y x2.", 0.025, tooltip="Segunda aproximacion x3 recorriendo los dos ultimos puntos."),
+                _paso_num("Paso 3: Error aproximado e", "Calcula e = |x3 - x2|:", it2["error"], "Toma el valor absoluto de la diferencia entre x3 y x2.", 0.02, tooltip="Error absoluto entre iteraciones consecutivas |x3 - x2|."),
             ],
             "resultado_final": it2["x_sig"],
         }
@@ -865,8 +851,10 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
     val_num_ini = 0 if es_gs else 1
 
     if desordenado:
+        # Permutar filas 0 y 1 para que inicialmente NO sea diagonal dominante (pregunta conceptual real!)
         A_mostrada = [A_dom[1][:], A_dom[0][:], A_dom[2][:]]
         b_mostrado = [b_dom[1], b_dom[0], b_dom[2]]
+        # Aun asi la solucion en A_dom es diagonal dominante; pedimos detectar si la matriz dada lo es y usamos A_dom reordenada para iterar
         idx_dom = 1
         nota_reord = f"Nota: Reordena filas para asegurar |a_ii| > suma |a_ij| e inicia con x^(0) = {x0_txt}."
     else:
@@ -931,8 +919,9 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
                     else f"Con el sistema en forma diagonal dominante y x^(0)={x0_corto}, calcula x1^(1):"
                 ),
                 it1["x"][0],
-                f"Despeja x1 de la primera ecuacion dominante sustituyendo x2 y x3 con los valores iniciales {x0_corto}.",
+                f"Despeja x1 de la primera ecuacion dominante sustituyendo x2={val_num_ini}, x3={val_num_ini}.",
                 0.025,
+                tooltip=f"Primer valor x1^(1) evaluado con semilla x^(0) = {x0_corto}.",
             ),
             _paso_num(
                 "Paso 3: Primera iteracion x2^(1)",
@@ -940,6 +929,7 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
                 it1["x"][1],
                 "En Gauss-Seidel sustituyes el x1 recien hallado; en Jacobi usas solo valores del paso anterior k.",
                 0.025,
+                tooltip="Segundo componente x2^(1) siguiendo las reglas de sustitucion del metodo.",
             ),
         ],
         "resultado_final": it1["x"][1],
@@ -952,24 +942,55 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
 
 def _construir_ajuste(r: random.Random, metodo: str, contexto: str, tipo_fn: str = "ln") -> Dict[str, Any]:
     if metodo == "Linea Recta":
-        xs = [1.0, 2.0, 3.0, 4.0, 5.0]
-        m = round(r.uniform(1.1, 2.6), 2)
-        b = round(r.uniform(0.5, 3.0), 2)
-        ys = [_red(m * x + b + r.uniform(-0.35, 0.35), 2) for x in xs]
+        if "clase" in contexto:
+            xs = [1.1, 1.9, 2.4, 4.8, 5.1, 10.5]
+        else:
+            xs = [1.0, 2.0, 3.0, 4.0, 5.0]
+        m = round(r.uniform(0.55, 2.2), 2)
+        b = round(r.uniform(0.8, 3.0), 2)
+        ys = [_red(m * x + b + r.uniform(-0.32, 0.32), 2) for x in xs]
         res = minimos_cuadrados_recta(xs, ys)
         a0, a1 = res["coeficientes"]
-        sx = res["sumatorias"]["sx"]
-        g_fn = lambda t: a0 + a1 * t
-        formula = "a1 = (n*sum xy - sum x sum y)/(n*sum x^2 - (sum x)^2)   |   a0 = y_bar - a1*x_bar"
+        sums = res["sumatorias"]
+        n_pts = len(xs)
+        sx, sy, sx2, sxy = sums["sx"], sums["sy"], sums["sx2"], sums["sxy"]
+        g_fn = lambda t, a0=a0, a1=a1: a0 + a1 * t
+        formula = (
+            "g(x) = a0 + a1*x   |   Sistema: n*a0 + (sum x)*a1 = sum y;   (sum x)*a0 + (sum x^2)*a1 = sum xy\n"
+            "a1 = [n*sum xy - (sum x)*(sum y)] / [n*sum x^2 - (sum x)^2],   a0 = (sum y - a1*sum x) / n"
+        )
         filas_tp = [
-            {"paso_min": 1, "valores": ["sum x_i", _red(sx, 3), "sum y_i", _red(res["sumatorias"]["sy"], 3)]},
-            {"paso_min": 2, "valores": ["Pendiente a1", _red(a1, 4), "sum x*y", _red(res["sumatorias"]["sxy"], 3)]},
-            {"paso_min": 3, "valores": ["Ordenada a0", _red(a0, 4), "g(x)=a0+a1*x", "-"]},
+            {"paso_min": 0, "valores": ["n (puntos)", n_pts, "Modelo", "g(x)=a0+a1*x"]},
+            {"paso_min": 1, "valores": ["sum x_i", _red(sx, 4), "sum y_i", _red(sy, 4)]},
+            {"paso_min": 1, "valores": ["sum x_i^2", _red(sx2, 4), "sum (x_i*y_i)", _red(sxy, 4)]},
+            {"paso_min": 2, "valores": ["Pendiente a1", _red(a1, 4), "ec. normal 1", f"{n_pts}a0+{_red(sx,2)}a1={_red(sy,2)}"]},
+            {"paso_min": 3, "valores": ["Ordenada a0", _red(a0, 4), "ec. normal 2", f"{_red(sx,2)}a0+{_red(sx2,2)}a1={_red(sxy,2)}"]},
         ]
         pasos = [
-            _paso_num("Paso 1: Sumatoria de x", "Calcula sum x_i:", sx, "Suma todos los valores de la columna x.", 0.02),
-            _paso_num("Paso 2: Pendiente a1", "Calcula a1 mediante las ecuaciones normales:", a1, "Usa n=5, sum xy, sum x, sum y, sum x^2 en la formula oficial.", 0.035),
-            _paso_num("Paso 3: Ordenada al origen a0", "Calcula a0 = y_prom - a1 * x_prom:", a0, "Resta a1*(sum x / n) al promedio de y.", 0.035),
+            _paso_num(
+                "Paso 1: Sumatoria auxiliar sum x^2",
+                f"Para los n={n_pts} pares (x_i, y_i), calcula sum x_i^2 (y verifica sum x, sum y, sum xy):",
+                sx2,
+                "Eleva cada x_i de la tabla al cuadrado y suma los n terminos.",
+                0.03,
+                tooltip="Suma de cuadrados de x (sum x^2), necesaria para el determinante del sistema 2x2.",
+            ),
+            _paso_num(
+                "Paso 2: Pendiente a1",
+                f"Usando n={n_pts}, sum x, sum y, sum x^2 y sum xy en a1 = [n*sum xy - (sum x)(sum y)] / [n*sum x^2 - (sum x)^2], calcula a1:",
+                a1,
+                "Calcula sum x, sum y, sum xy (visibles en TABLA PROGRESIVA) y despeja a1 del sistema normal.",
+                0.04,
+                tooltip="Coeficiente a1 de g(x) = a0 + a1*x (equivale a la pendiente de la recta).",
+            ),
+            _paso_num(
+                "Paso 3: Ordenada al origen a0",
+                f"Calcula a0 = (sum y - a1 * sum x) / n (con n={n_pts}):",
+                a0,
+                "Sustituye a1, sum y, sum x y n en la primera ecuacion normal n*a0 + (sum x)*a1 = sum y.",
+                0.04,
+                tooltip="Coeficiente a0 de g(x) = a0 + a1*x (interseccion con el eje y).",
+            ),
         ]
         res_final = a1
 
@@ -1124,6 +1145,9 @@ def _construir_ajuste(r: random.Random, metodo: str, contexto: str, tipo_fn: str
 # ==============================================================================
 
 def _construir_integracion(r: random.Random, metodo: str, tabular: bool, contexto: str) -> Dict[str, Any]:
+    abiertas_alpha = {1: "3/2", 2: "4/3", 3: "5/24", 4: "6/20", 5: "7/1440", 6: "8/945"}
+    cerradas_alpha = {1: "1/2", 2: "1/3", 3: "3/8", 4: "2/45", 5: "5/288", 6: "1/140"}
+
     if metodo == "Regla Trapezoidal":
         n = r.choice([4, 5, 6])
         formula = "h = (b - a)/n   |   I = (h/2) * [f(a) + 2*sum_{i=1}^{n-1} f(xi) + f(b)]"
@@ -1135,10 +1159,20 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
         formula = "h = (b - a)/n (n mult. 3)   |   I = (3h/8) * [f0 + 3*sum_{i%3!=0} fi + 2*sum_{i%3==0} fi + fn]"
     elif "Abiertas" in metodo:
         n = r.choice([2, 3, 4])
-        formula = "h = (b - a)/(n + 2)   |   I = alpha * h * sum c_i * f(x_i)   (extremos abiertos)"
+        alpha_txt = abiertas_alpha[n]
+        pesos_txt = str(ABIERTAS_TABLA[n][1])
+        formula = (
+            f"h = (b - a)/(n + 2)   |   n={n}: alpha = {alpha_txt}, pesos c_i = {pesos_txt}\n"
+            "I = alpha * h * sum_{i=1}^{n+1} c_i * f(x_i)   (x_i = a + i*h, extremos con peso 0)"
+        )
     else:
         n = r.choice([4, 5])
-        formula = "h = (b - a)/n   |   I = alpha * h * sum c_i * f(x_i)   (tabla cerrada oficial)"
+        alpha_txt = cerradas_alpha[n]
+        pesos_txt = str(CERRADAS_TABLA[n][1])
+        formula = (
+            f"h = (b - a)/n   |   n={n}: alpha = {alpha_txt}, pesos c_i = {pesos_txt}\n"
+            "I = alpha * h * sum_{i=0}^{n} c_i * f(x_i)   (x_i = a + i*h)"
+        )
 
     a = float(r.choice([0, 1]))
     h_base = r.choice([0.25, 0.5]) if "Abiertas" not in metodo else 0.5
@@ -1158,8 +1192,13 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
         xs = [round(a + i * h_tab, 4) for i in range(total_pts)]
         fs = [_red(f(x), 3) for x in xs]
         res = integrar_tabla(metodo, xs, fs)
-        enunc = f"Tabla experimental discreta de {contexto} en [a={a}, b={b}]. Integra los datos medidos aplicando {metodo}."
-        tabla_datos = (["i", "x_i", "y_i (medido)"], [[i, res["xs"][i], res["fs"][i]] for i in range(len(res["xs"]))])
+        enunc = f"Tabla experimental discreta de {contexto} en [a={a}, b={b}] (n={n}). Integra aplicando {metodo}."
+        filas_dat = [[i, res["xs"][i], res["fs"][i]] for i in range(len(res["xs"]))]
+        if "Abiertas" in metodo:
+            filas_dat.append(["Formula h", "(b-a)/(n+2)", f"a={abiertas_alpha[n]}, c={res['pesos']}"])
+        elif "Cerradas" in metodo:
+            filas_dat.append(["Formula h", "(b-a)/n", f"a={cerradas_alpha[n]}, c={res['pesos']}"])
+        tabla_datos = (["i", "x_i", "f(x_i) / Regla"], filas_dat)
         curva_pts = list(zip(res["xs"], res["fs"]))
     else:
         if metodo == "Regla Trapezoidal":
@@ -1173,11 +1212,23 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
         else:
             res = newton_cotes_cerradas(f, a, b, n)
         enunc = f"Calculo de {contexto} mediante la integral en [a={a}, b={b}] de f(x) = {f_txt} con {metodo} (n={n})."
-        tabla_datos = (["Parametro", "Valor"], [["f(x)", f_txt], ["Intervalo [a, b]", f"[{a}, {b}]"], ["n (tabla/seg.)", n]])
+        filas_dat = [["f(x)", f_txt], ["Intervalo [a, b]", f"[{a}, {b}]"], ["n (tabla/seg.)", n]]
+        if "Abiertas" in metodo:
+            filas_dat.extend([
+                ["Formula paso h", "(b - a) / (n + 2)"],
+                ["Constante alpha_n", abiertas_alpha[n]],
+                ["Pesos c_i (extremos 0)", str(res["pesos"])],
+            ])
+        elif "Cerradas" in metodo:
+            filas_dat.extend([
+                ["Formula paso h", "(b - a) / n"],
+                ["Constante alpha_n", cerradas_alpha[n]],
+                ["Pesos c_i", str(res["pesos"])],
+            ])
+        tabla_datos = (["Parametro", "Valor"], filas_dat)
         curva_pts = _muestrear_curva(f, a - 0.1, b + 0.1)
 
     h = res["h"]
-    f0 = res["fs"][0]
     f1 = res["fs"][1]
     integral = res["integral"]
     filas_tp = [
@@ -1185,22 +1236,64 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
         for i in range(len(res["xs"]))
     ]
     if "Newton" in metodo:
+        denom_txt = f"n + 2 = {n + 2}" if "Abiertas" in metodo else f"n = {n}"
+        paso1 = _paso_num(
+            "Paso 1: Tamano de paso h",
+            f"Calcula h = (b - a) / ({denom_txt}) en [{a}, {b}]:",
+            h,
+            f"Divide ({b} - {a}) entre ({denom_txt}).",
+            0.02,
+            tooltip=f"Incremento h = (b - a) / ({denom_txt}) entre puntos x_i = a + i*h.",
+        )
         paso2 = _paso_num(
             "Paso 2: Evaluacion en nodo interior f(x1)",
-            f"Verifica el valor f(x1) en x1 = {_red(res['xs'][1], 4)} (peso c1={res['pesos'][1]}):",
+            f"Evalua f(x1) = {f_txt if not tabular else 'tabla'} en x1 = {_red(res['xs'][1], 4)} (peso c1={res['pesos'][1]}):",
             f1,
-            "Evalua f(a + h) o toma el 2do valor tabulado.",
-            0.025,
+            "Evalua f(a + h) o lee el nodo i=1 (x1 = a + h).",
+            0.03,
+            tooltip=f"Primer nodo activo x1 = a + h; multiplica luego por su peso c1 = {res['pesos'][1]}.",
         )
-        pista3 = f"Usa los coeficientes oficiales (alpha={_red(res['alpha'],6)}, pesos={res['pesos']}) multiplicados por h*sum(c_i*f_i)."
+        alpha_str = abiertas_alpha[n] if "Abiertas" in metodo else cerradas_alpha[n]
+        pista3 = f"Aplica I = ({alpha_str}) * h * sum(c_i * f(x_i)) usando pesos {res['pesos']}."
+        paso3 = _paso_num(
+            "Paso 3: Integral aproximada I",
+            f"Calcula I = ({alpha_str}) * h * sum(c_i * f(x_i)) con pesos {res['pesos']}:",
+            integral,
+            pista3,
+            0.06,
+            tooltip=f"Valor total de la integral aproximada usando alpha={alpha_str} y pesos {res['pesos']}.",
+        )
     else:
-        paso2 = _paso_num("Paso 2: Suma de terminos interiores ponderados", f"Calcula f(a + h) en x1 = {_red(res['xs'][1], 4)}:", f1, "Evalua f en el primer nodo interior a + h.", 0.025)
+        paso1 = _paso_num(
+            "Paso 1: Tamano de paso h",
+            f"Calcula h = ({b} - {a}) / {n}:",
+            h,
+            "Divide el ancho (b - a) entre n subintervalos.",
+            0.02,
+            tooltip="Ancho h de cada subintervalo en [a, b].",
+        )
+        paso2 = _paso_num(
+            "Paso 2: Suma de nodo interior f(x1)",
+            f"Calcula f(x1) en x1 = a + h = {_red(res['xs'][1], 4)}:",
+            f1,
+            "Evalua f en el primer nodo interior x1 = a + h.",
+            0.03,
+            tooltip="Ordenada f(a + h) en el primer punto interior de la malla.",
+        )
         pista3 = "Aplica la regla oficial sumando extremos + nodos interiores con sus multiplicadores correspondientes."
+        paso3 = _paso_num(
+            "Paso 3: Integral aproximada I",
+            "Calcula el valor final de la integral I:",
+            integral,
+            pista3,
+            0.06,
+            tooltip="Aproximacion final de la integral definida I.",
+        )
 
     return {
         "metodo": metodo,
         "sala_id": 5,
-        "oxigeno_seg": 195,
+        "oxigeno_seg": 540 if "Abiertas" in metodo else (480 if "Cerradas" in metodo else 360),
         "formula": formula,
         "enunciado": enunc,
         "datos_tabla": tabla_datos,
@@ -1214,11 +1307,7 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
             "puntos_datos": list(zip(res["xs"], res["fs"])),
             "area_integracion": {"xs": res["xs"], "fs": res["fs"], "a": a, "b": b},
         },
-        "pasos": [
-            _paso_num("Paso 1: Tamano de paso h", f"Calcula h para [{a}, {b}] con n={n}:", h, "Divide (b - a) entre (n + 2) si es Newton-Cotes Abierta, o entre n en las demas.", 0.01),
-            paso2,
-            _paso_num("Paso 3: Integral aproximada I", "Calcula el valor final de la integral I:", integral, pista3, 0.06),
-        ],
+        "pasos": [paso1, paso2, paso3],
         "resultado_final": integral,
     }
 
@@ -1228,121 +1317,194 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
 # ==============================================================================
 
 def _construir_edo_1er(r: random.Random, metodo: str, tipo_edo: str, contexto: str) -> Dict[str, Any]:
-    a_c = r.choice([1, 2])
+    a_c = r.choice([1, 2, 3])
     b_c = r.choice([1, 2])
     h = r.choice([0.1, 0.2, 0.25])
-    if tipo_edo == "bilineal":
+    if tipo_edo == "clase_implicita":
+        d_c = r.choice([2, 3])
+        c_0 = r.choice([1, 2])
+        y0, t0 = float(r.choice([1, 2])), 0.0
+        f_edo = lambda y, t, a=a_c, b=c_0, d=d_c: (a * y * t - b) / d
+        edo_orig = f"{d_c}*y' - {a_c}*y*t + {c_0} = 0"
+        f_txt = f"({a_c}*y*t - {c_0}) / {d_c}"
+    elif tipo_edo == "bilineal":
         y0, t0 = float(r.choice([1, 2])), float(r.choice([0, 1]))
         f_edo = lambda y, t, a=a_c, b=b_c: a * y * t + b
-        f_txt = f"{a_c}yt + {b_c}"
+        edo_orig = f"y' = {a_c}*y*t + {b_c}"
+        f_txt = f"{a_c}*y*t + {b_c}"
     else:
         y0, t0 = float(r.choice([1, 2])), 0.0
         f_edo = lambda y, t, a=a_c, b=b_c: b_c * t - a * y + 2.0
-        f_txt = f"{b_c}t - {a_c}y + 2"
+        edo_orig = f"y' + {a_c}*y - {b_c}*t - 2 = 0"
+        f_txt = f"{b_c}*t - {a_c}*y + 2"
 
+    t1 = round(t0 + h, 4)
+    t2 = round(t0 + 2 * h, 4)
     sala_id = 6 if metodo in ("Euler Modificado", "Runge - Kutta 2ndo Orden") else 7
-    tabla_edo = [["y' = f(y,t)", f_txt], ["y0", y0], ["t0", t0], ["h", h]]
+    tabla_edo = [["Ecuacion original", edo_orig], ["Despeje y' = f(y, t)", f_txt], ["y0", y0], ["t0", t0], ["h", h]]
+
     if metodo == "Euler Modificado":
         y1_dato = round(y0 + h * f_edo(y0, t0), 2)
         tabla_edo.append(["y1 (estimado)", y1_dato])
         res = euler_modificado(f_edo, y0, t0, h, pasos=2, y1_estimado=y1_dato)
         p1, p2 = res["historial"][0], res["historial"][1]
-        formula = "t_{n+1} = tn + h   |   y'_{n+1} = yn + (h/2)*[f(yn,tn) + f(y_{n+1}, t_{n+1})]"
+        formula = (
+            f"Despeje: y' = f(y, t) = {f_txt}   |   t_{{n+1}} = t_n + h\n"
+            "y*_{n+1} = y_n + h*f(y_n, t_n) (o y1 estimado)   |   y'_{n+1} = y_n + (h/2)*[f(y_n, t_n) + f(y_{n+1}, t_{n+1})]"
+        )
         pasos = [
             _paso_num(
                 "Paso 1: Evaluar f(y0, t0)",
-                f"Con y0={y0} y t0={t0}, calcula f(y0, t0):",
+                f"Con y' = f(y, t) = {f_txt}, y0={y0} y t0={t0}, calcula f(y0, t0):",
                 p1["f_n"],
                 f"Sustituye los valores iniciales (y0={y0}, t0={t0}) en la expresion {f_txt}.",
-                0.02,
+                0.025,
+                tooltip=f"Pendiente inicial f(y0, t0) evaluando {f_txt} en ({y0}, {t0}).",
             ),
             _paso_num(
                 "Paso 2: Evaluar f(y1, t1)",
-                f"Con t1 = {_red(p1['t_sig'], 3)} y el dato y1 = {y1_dato}, calcula f(y1, t1):",
+                f"Con y' = f(y, t) = {f_txt}, t1 = {t1} y el dato estimado y1 = {y1_dato}, calcula f(y1, t1):",
                 p1["f_sig"],
-                f"Sustituye el dato estimado y1 ({y1_dato}) y t1 (t0 + h) en la expresion {f_txt}.",
-                0.02,
+                f"Sustituye el dato estimado y1 ({y1_dato}) y t1 = t0 + h ({t1}) en la expresion {f_txt}.",
+                0.025,
+                tooltip=f"Pendiente estimada f(y1, t1) evaluando {f_txt} en ({y1_dato}, {t1}).",
             ),
             _paso_num(
                 "Paso 3: Valor corregido y'1",
-                "Calcula y'1 = y0 + (h/2)*[f(y0,t0) + f(y1,t1)]:",
+                "Calcula y'1 = y0 + (h/2)*[f(y0, t0) + f(y1, t1)]:",
                 p1["y_sig"],
                 "Multiplica (h/2) por la suma de los Pasos 1 y 2, y sumalo a y0.",
-                0.025,
+                0.03,
+                tooltip=f"Valor corregido y'1 en t1 = {t1} mediante Euler Modificado.",
             ),
         ]
         y1_val = p1["y_sig"]
         filas_tp = [
             {"paso_min": 0, "valores": [0, t0, y0, f"y1(dato)={y1_dato}"]},
-            {"paso_min": 1, "valores": ["f(y0,t0)", _red(t0, 3), _red(y0, 4), f"f0={_red(p1['f_n'],4)}"]},
-            {"paso_min": 2, "valores": ["f(y1,t1)", _red(p1["t_sig"], 3), y1_dato, f"f1={_red(p1['f_sig'],4)}"]},
-            {"paso_min": 3, "valores": [1, _red(p1["t_sig"], 3), _red(y1_val, 4), "y'1 corregido"]},
+            {"paso_min": 1, "valores": ["f(y0,t0)", _red(t0, 3), _red(y0, 4), f"f0={_red(p1['f_n'], 4)}"]},
+            {"paso_min": 2, "valores": ["f(y1,t1)", t1, y1_dato, f"f1={_red(p1['f_sig'], 4)}"]},
+            {"paso_min": 3, "valores": [1, t1, _red(y1_val, 4), "y'1 corregido"]},
         ]
     elif metodo == "Runge - Kutta 2ndo Orden":
         res = runge_kutta_2(f_edo, y0, t0, h, pasos=2)
         p1, p2 = res["historial"][0], res["historial"][1]
-        formula = "k1 = h*f(yn,tn),   k2 = h*f(yn+k1, tn+h),   y_{n+1} = yn + (k1 + k2)/2"
+        formula = (
+            f"y' = f(y, t) = {f_txt}\n"
+            "k1 = h*f(yn, tn),   k2 = h*f(yn + k1, tn + h),   y_{n+1} = yn + (1/2)*(k1 + k2)"
+        )
         pasos = [
-            _paso_num("Paso 1: Pendiente k1", "Calcula k1 = h * f(y0, t0):", p1["k1"], "Evalua f(y0,t0) y multiplica por el paso h.", 0.02),
-            _paso_num("Paso 2: Pendiente k2", "Calcula k2 = h * f(y0 + k1, t0 + h):", p1["k2"], "Desplaza y0+k1 y t0+h, evalua f y multiplica por h.", 0.025),
-            _paso_num("Paso 3: Resultado y1", "Calcula y1 = y0 + (k1 + k2) / 2:", p1["y_sig"], "Suma a y0 el promedio de k1 y k2.", 0.025),
+            _paso_num(
+                "Paso 1: Pendiente k1",
+                f"Con f(y, t) = {f_txt}, calcula k1 = h * f(y0={y0}, t0={t0}):",
+                p1["k1"],
+                f"Sustituye y={y0}, t={t0} en {f_txt} y multiplica por h={h}.",
+                0.025,
+                tooltip=f"Primer incremento k1 = h * f(y0, t0) con f(y, t) = {f_txt}.",
+            ),
+            _paso_num(
+                "Paso 2: Pendiente k2",
+                f"Con f(y, t) = {f_txt}, calcula k2 = h * f(y0 + k1, t0 + h) en t1={t1}:",
+                p1["k2"],
+                f"Usa y0+k1 y t0+h={t1} en {f_txt} y multiplica por h={h}.",
+                0.03,
+                tooltip=f"Segundo incremento k2 evaluado en (y0 + k1, t0 + h).",
+            ),
+            _paso_num(
+                "Paso 3: Resultado y1",
+                "Calcula y1 = y0 + (1/2) * (k1 + k2):",
+                p1["y_sig"],
+                "Suma a y0 el promedio (k1 + k2) / 2.",
+                0.03,
+                tooltip=f"Aproximacion y1 en t1 = {t1}.",
+            ),
         ]
         y1_val = p1["y_sig"]
         filas_tp = [
-            {"paso_min": 0, "valores": [0, t0, y0, "-"]},
-            {"paso_min": 1, "valores": [1, _red(p1["t"] + h, 3), _red(y1_val, 4), f"k1={_red(p1['k1'],4)}, k2={_red(p1['k2'],4)}"]},
-            {"paso_min": 3, "valores": [2, _red(p2["t"] + h, 3), _red(res["y_final"], 4), f"k1={_red(p2['k1'],4)}"]},
+            {"paso_min": 0, "valores": [0, t0, y0, f"f(y,t)={f_txt}"]},
+            {"paso_min": 1, "valores": [1, t1, "(pendiente)", f"k1={_red(p1['k1'], 4)}"]},
+            {"paso_min": 2, "valores": [1, t1, "(pendiente)", f"k2={_red(p1['k2'], 4)}"]},
+            {"paso_min": 3, "valores": [1, t1, _red(y1_val, 4), "y1 calculado"]},
         ]
     elif metodo == "Runge - Kutta 3er Orden":
         res = runge_kutta_3(f_edo, y0, t0, h, pasos=2)
         p1, p2 = res["historial"][0], res["historial"][1]
-        formula = "k1=hf(yn,tn), k2=hf(yn+k1/2, tn+h/2), k3=hf(yn-k1+2k2, tn+h), y_{n+1}=yn+(k1+4k2+k3)/6"
+        formula = (
+            f"y' = f(y, t) = {f_txt}   |   k1 = h*f(yn, tn)\n"
+            "k2 = h*f(yn + k1/2, tn + h/2),   k3 = h*f(yn - k1 + 2*k2, tn + h),   y_{n+1} = yn + (k1 + 4*k2 + k3)/6"
+        )
         pasos = [
-            _paso_num("Paso 1: Pendiente k2", "Calcula k2 = h * f(y0 + k1/2, t0 + h/2):", p1["k2"], "Obtene primero k1=h*f(y0,t0) y evalua en el punto medio.", 0.02),
-            _paso_num("Paso 2: Pendiente k3", "Calcula k3 = h * f(y0 - k1 + 2*k2, t0 + h):", p1["k3"], "Combina y0 - k1 + 2*k2 y t0 + h para k3.", 0.025),
-            _paso_num("Paso 3: Resultado y1", "Calcula y1 = y0 + (k1 + 4*k2 + k3) / 6:", p1["y_sig"], "Aplica ponderacion 1-4-1 de Simpson.", 0.025),
+            _paso_num(
+                "Paso 1: Pendiente k1",
+                f"Con f(y, t) = {f_txt}, calcula k1 = h * f(y0={y0}, t0={t0}):",
+                p1["k1"],
+                f"Sustituye y={y0}, t={t0} en f(y, t) = {f_txt} y multiplica por h={h}.",
+                0.025,
+                tooltip=f"Calcula k1 primero; luego aparecera en TABLA PROGRESIVA para k2.",
+            ),
+            _paso_num(
+                "Paso 2: Pendiente k2",
+                f"Con f(y, t) = {f_txt} y k1 previo, calcula k2 = h * f(y0 + k1/2, t0 + h/2):",
+                p1["k2"],
+                "Evalua f en el punto medio (y0 + k1/2, t0 + h/2) y multiplica por h.",
+                0.025,
+                tooltip="Pendiente intermedia k2 en t0 + h/2.",
+            ),
+            _paso_num(
+                "Paso 3: Resultado y1",
+                f"Calcula k3 = h*f(y0 - k1 + 2*k2, t0 + h) con f(y,t)={f_txt} y reporta y1 = y0 + (k1 + 4*k2 + k3)/6:",
+                p1["y_sig"],
+                "Halla k3 en (y0 - k1 + 2*k2, t0 + h) y aplica la ponderacion (1, 4, 1)/6.",
+                0.03,
+                tooltip=f"Solucion y1 en t1 = {t1}.",
+            ),
         ]
         y1_val = p1["y_sig"]
         filas_tp = [
-            {"paso_min": 0, "valores": [0, t0, y0, "-"]},
-            {"paso_min": 2, "valores": [1, _red(p1["t"] + h, 3), _red(y1_val, 4), f"k2={_red(p1['k2'],4)}"]},
-            {"paso_min": 3, "valores": [2, _red(p2["t"] + h, 3), _red(res["y_final"], 4), "paso 2"]},
+            {"paso_min": 0, "valores": [0, t0, y0, f"f(y,t)={f_txt}"]},
+            {"paso_min": 1, "valores": [1, t1, "(en proceso)", f"k1={_red(p1['k1'], 4)}"]},
+            {"paso_min": 2, "valores": [1, t1, "(en proceso)", f"k2={_red(p1['k2'], 4)}, k3={_red(p1['k3'], 4)}"]},
+            {"paso_min": 3, "valores": [1, t1, _red(y1_val, 4), "y1 calculado"]},
         ]
     else:
         es_1_3 = "1/3" in metodo
         res = runge_kutta_4_simpson_1_3(f_edo, y0, t0, h, pasos=2) if es_1_3 else runge_kutta_4_simpson_3_8(f_edo, y0, t0, h, pasos=2)
         p1, p2 = res["historial"][0], res["historial"][1]
-        formula = (
-            "k1=hf(yn,tn), k2=hf(yn+k1/2,tn+h/2), k3=hf(yn+k2/2,tn+h/2), k4=hf(yn+k3,tn+h), y1=y0+(k1+2k2+2k3+k4)/6"
-            if es_1_3
-            else "k1=hf(yn,tn), k2=hf(yn+k1/3,tn+h/3), k3=hf(yn+k1/3+k2/3,tn+2h/3), k4=hf(yn+k1-k2+k3,tn+h), y1=y0+(k1+3k2+3k3+k4)/8"
-        )
-        pista_k4 = (
-            "Calcula k2, k3 en t0+h/2 y k4 = h*f(y0+k3, t0+h)."
-            if es_1_3
-            else "Calcula k2 en h/3, k3 = h*f(y0+k1/3+k2/3, t0+2h/3) y k4 = h*f(y0+k1-k2+k3, t0+h)."
-        )
+        if es_1_3:
+            formula = (
+                f"y' = f(y,t) = {f_txt}   |   k1=h*f(yn,tn), k2=h*f(yn+k1/2,tn+h/2)\n"
+                "k3=h*f(yn+k2/2,tn+h/2), k4=h*f(yn+k3,tn+h)   |   y_{n+1}=yn+(k1+2k2+2k3+k4)/6"
+            )
+            preg_k4 = f"Con f(y,t)={f_txt}, calcula k2, k3 y reporta k4 = h*f(y0+k3, t0+h):"
+            pista_k4 = "Calcula k2, k3 en t0+h/2 y luego k4 = h*f(y0+k3, t0+h)."
+            preg_y1 = "Calcula y1 = y0 + (k1 + 2*k2 + 2*k3 + k4) / 6:"
+        else:
+            formula = (
+                f"y' = f(y,t) = {f_txt}   |   k1=h*f(yn,tn), k2=h*f(yn+k1/3,tn+h/3)\n"
+                "k3=h*f(yn+k1/3+k2/3,tn+2h/3), k4=h*f(yn+k1-k2+k3,tn+h)   |   y_{n+1}=yn+(k1+3k2+3k3+k4)/8"
+            )
+            preg_k4 = f"Con f(y,t)={f_txt}, calcula k2, k3 y reporta k4 = h*f(y0+k1-k2+k3, t0+h):"
+            pista_k4 = "Calcula k2 en h/3, k3 en 2h/3 y k4 = h*f(y0+k1-k2+k3, t0+h)."
+            preg_y1 = "Calcula y1 = y0 + (k1 + 3*k2 + 3*k3 + k4) / 8:"
         pasos = [
-            _paso_num("Paso 1: Pendiente k1", "Calcula k1 = h * f(y0, t0):", p1["k1"], "Multiplica h por f(y0, t0).", 0.02),
-            _paso_num("Paso 2: Pendiente k4", "Calcula k4 segun la regla del metodo:", p1["k4"], pista_k4, 0.03),
-            _paso_num("Paso 3: Resultado y1", "Calcula y1 combinando k1..k4:", p1["y_sig"], "Aplica exactamente los coeficientes de 1/3 o 3/8 de Simpson segun el metodo.", 0.03),
+            _paso_num("Paso 1: Pendiente k1", f"Con f(y, t) = {f_txt}, calcula k1 = h * f(y0={y0}, t0={t0}):", p1["k1"], f"Multiplica h={h} por f({y0}, {t0}).", 0.025, tooltip=f"Primer incremento k1 usando f(y,t)={f_txt}."),
+            _paso_num("Paso 2: Pendiente k4", preg_k4, p1["k4"], pista_k4, 0.035, tooltip="Cuarto incremento k4 de la formula de Runge-Kutta."),
+            _paso_num("Paso 3: Resultado y1", preg_y1, p1["y_sig"], "Aplica exactamente los coeficientes de 1/3 o 3/8 de Simpson segun el metodo.", 0.035, tooltip=f"Solucion y1 en t1 = {t1}."),
         ]
         y1_val = p1["y_sig"]
         filas_tp = [
-            {"paso_min": 0, "valores": [0, t0, y0, "-"]},
-            {"paso_min": 2, "valores": [1, _red(p1["t"] + h, 3), _red(y1_val, 4), f"k4={_red(p1['k4'],4)}"]},
-            {"paso_min": 3, "valores": [2, _red(p2["t"] + h, 3), _red(res["y_final"], 4), "paso 2"]},
+            {"paso_min": 0, "valores": [0, t0, y0, f"f(y,t)={f_txt}"]},
+            {"paso_min": 1, "valores": [1, t1, "(en proceso)", f"k1={_red(p1['k1'], 4)}"]},
+            {"paso_min": 2, "valores": [1, t1, "(en proceso)", f"k2={_red(p1['k2'], 4)}, k3={_red(p1['k3'], 4)}, k4={_red(p1['k4'], 4)}"]},
+            {"paso_min": 3, "valores": [1, t1, _red(y1_val, 4), "y1 calculado"]},
         ]
 
-    t1 = t0 + h
-    t2 = t0 + 2 * h
     y2_val = res["y_final"]
     return {
         "metodo": metodo,
         "sala_id": sala_id,
-        "oxigeno_seg": 200,
+        "oxigeno_seg": 540 if sala_id == 6 else 600,
         "formula": formula,
-        "enunciado": f"Modelado de {contexto} mediante la EDO y' = {f_txt} con y({t0}) = {y0} y paso h = {h} ({metodo}).",
+        "enunciado": f"Modelado de {contexto} para la EDO {edo_orig} (y' = f(y,t) = {f_txt}), con y({t0}) = {y0} y paso h = {h} ({metodo}).",
         "datos_tabla": (["Parametro", "Valor"], tabla_edo),
         "tabla_progresiva": {"titulo": f"Trayectoria Numerica ({metodo})", "columnas": ["Paso n", "t_n", "y_n", "Pendientes"], "filas": filas_tp},
         "grafica": {
@@ -1384,15 +1546,19 @@ def _construir_edo_2do(r: random.Random, tipo: str, contexto: str) -> Dict[str, 
     return {
         "metodo": "Runge - Kutta de Orden Superior",
         "sala_id": 7,
-        "oxigeno_seg": 210,
-        "formula": "U=y, V=y'   |   k1=h*V, m1=h*g(V,U,t), k2=h*(V+m1), m2=h*g(V+m1,U+k1,t+h)",
-        "enunciado": f"Sistema de {contexto}: {edo_txt}, con y({t0_os})={y0_os}, y'({t0_os})={yp0_os}, t0={t0_os} y paso h={h_os}. Calcula el primer paso (y1, y'1).",
+        "oxigeno_seg": 600,
+        "formula": (
+            f"U=y, V=y', V'=g(V,U,t)={desp_txt}\n"
+            "k1=h*V, m1=h*g(V,U,t), k2=h*(V+m1), m2=h*g(V+m1,U+k1,t+h)   |   y1=y0+0.5(k1+k2), y'1=y'0+0.5(m1+m2)"
+        ),
+        "enunciado": f"Sistema de {contexto}: {edo_txt} (V'=g(V,U,t)={desp_txt}), con y({t0_os})={y0_os}, y'({t0_os})={yp0_os}, t0={t0_os} y paso h={h_os}. Calcula el primer paso (y1, y'1).",
         "datos_tabla": (["Parametro", "Valor"], [["EDO", edo_txt], ["V' = g(V,U,t)", desp_txt], ["U0 = y0", y0_os], ["V0 = y'0", yp0_os], ["t0", t0_os], ["h", h_os]]),
         "tabla_progresiva": {
             "titulo": "Sistema Equivalente 2do Orden",
             "columnas": ["Paso", "t_n", "y_n (U)", "y'_n (V)"],
             "filas": [
                 {"paso_min": 0, "valores": [0, t0_os, y0_os, yp0_os]},
+                {"paso_min": 1, "valores": ["k1,m1", t0_os, f"k1={_red(p1['k1'],4)}", f"m1={_red(p1['m1'],4)}"]},
                 {"paso_min": 2, "valores": [1, _red(t0_os + h_os, 3), _red(p1["y_sig"], 4), _red(p1["yp_sig"], 4)]},
                 {"paso_min": 3, "valores": [2, _red(t0_os + 2 * h_os, 3), _red(p2["y_sig"], 4), _red(p2["yp_sig"], 4)]},
             ],
@@ -1410,9 +1576,9 @@ def _construir_edo_2do(r: random.Random, tipo: str, contexto: str) -> Dict[str, 
             ],
         },
         "pasos": [
-            _paso_num("Paso 1: Pendiente m1", enunc_m1, p1["m1"], "Evalua g(V0, U0, t0) y multiplica por h.", 0.02),
-            _paso_num("Paso 2: Desplazamiento y1", "Calcula y1 = y0 + 0.5*(k1 + k2):", p1["y_sig"], "Calcula k1 = h*V0 y k2 = h*(V0 + m1) y promedia.", 0.025),
-            _paso_num("Paso 3: Velocidad y'1", "Calcula y'1 = y'0 + 0.5*(m1 + m2):", p1["yp_sig"], "Calcula m2 = h*g(V0+m1, U0+k1, t0+h) y promedia con m1.", 0.03),
+            _paso_num("Paso 1: Pendiente m1", f"Con g(V,U,t) = {desp_txt}, " + enunc_m1, p1["m1"], f"Evalua g(V0={yp0_os}, U0={y0_os}, t0={t0_os}) en {desp_txt} y multiplica por h={h_os}.", 0.025, tooltip=f"Primera pendiente m1 para V' = {desp_txt} en (V0, U0, t0)."),
+            _paso_num("Paso 2: Desplazamiento y1", "Calcula y1 = y0 + 0.5*(k1 + k2) (k1=h*V0, k2=h*(V0+m1)):", p1["y_sig"], "Calcula k1 = h*V0 y k2 = h*(V0 + m1) y promedia con y0.", 0.03, tooltip="Posicion aproximada y1 en t1 = t0 + h."),
+            _paso_num("Paso 3: Velocidad y'1", f"Con g(V,U,t)={desp_txt}, calcula m2 = h*g(V0+m1, U0+k1, t0+h) y reporta y'1 = y'0 + 0.5*(m1 + m2):", p1["yp_sig"], "Evalua g en (V0+m1, U0+k1, t0+h), multiplica por h y promedia con m1.", 0.035, tooltip="Derivada/velocidad aproximada y'1 en t1 = t0 + h."),
         ],
         "resultado_final": p1["y_sig"],
     }
@@ -1488,8 +1654,8 @@ BANCO_PLANTILLAS: Dict[str, List[Dict[str, Any]]] = {
         {"id": "S3_JAC_NIEVES_TERM", "referencia": "Nieves & Dominguez, Cap. 3 — Placa termica estacionaria", "construir": lambda r: _construir_sistema_iterativo(r, "Jacobi", "distribucion de temperaturas en placa", True)},
     ],
     "Linea Recta": [
+        {"id": "S4_LR_ZAMORA_OF", "referencia": "Apuntes Ing. Oralia Zamora — Linea Recta (OR/MCuadrados)", "construir": lambda r: _construir_ajuste(r, "Linea Recta", "datos experimentales de clase (6 puntos)")},
         {"id": "S4_LR_CHAPRA_17_1", "referencia": "Chapra & Canale (7a ed.), Ej. 17.1 — Regresion lineal", "construir": lambda r: _construir_ajuste(r, "Linea Recta", "velocidad terminal experimental")},
-        {"id": "S4_LR_NIEVES_HOOKE", "referencia": "Nieves & Dominguez, Cap. 6 — Ley de Hooke", "construir": lambda r: _construir_ajuste(r, "Linea Recta", "elongacion elastica de resorte")},
     ],
     "Cuadratica": [
         {"id": "S4_CUAD_CHAPRA_17_4", "referencia": "Chapra & Canale (7a ed.), Ej. 17.4 — Regresion polinomial", "construir": lambda r: _construir_ajuste(r, "Cuadratica", "curva de calibracion parabolica")},
@@ -1528,8 +1694,8 @@ BANCO_PLANTILLAS: Dict[str, List[Dict[str, Any]]] = {
         {"id": "S5_NCC_TABLA", "referencia": "Chapra & Canale (7a ed.), Sec. 21.3 — Cuadratura cerrada tabular", "construir": lambda r: _construir_integracion(r, "Newton - Cotes Cerradas", True, "consumo termico tabular")},
     ],
     "Euler Modificado": [
-        {"id": "S6_EM_CHAPRA_25_5", "referencia": "Chapra & Canale (7a ed.), Ej. 25.5 — Metodo de Heun", "construir": lambda r: _construir_edo_1er(r, "Euler Modificado", "bilineal", "concentracion quimica en reactor")},
-        {"id": "S6_EM_ZAMORA_RL", "referencia": "Apuntes Ing. Oralia Zamora — Euler Modificado (EDO)", "construir": lambda r: _construir_edo_1er(r, "Euler Modificado", "lineal", "carga de inductor en circuito RL")},
+        {"id": "S6_EM_ZAMORA_RL", "referencia": "Apuntes Ing. Oralia Zamora — Euler Modificado (OR/EDO)", "construir": lambda r: _construir_edo_1er(r, "Euler Modificado", "clase_implicita", "despeje y'=f(y,t) en reactor/circuito")},
+        {"id": "S6_EM_CHAPRA_25_5", "referencia": "Chapra & Canale (7a ed.), Ej. 25.5 — Metodo de Heun", "construir": lambda r: _construir_edo_1er(r, "Euler Modificado", "lineal", "concentracion quimica en reactor")},
     ],
     "Runge - Kutta 2ndo Orden": [
         {"id": "S6_RK2_CHAPRA_25_6", "referencia": "Chapra & Canale (7a ed.), Sec. 25.3 — Runge-Kutta 2do Orden", "construir": lambda r: _construir_edo_1er(r, "Runge - Kutta 2ndo Orden", "bilineal", "balance de masa transitorio")},
@@ -1551,6 +1717,43 @@ BANCO_PLANTILLAS: Dict[str, List[Dict[str, Any]]] = {
         {"id": "S7_RKOS_ZAMORA_2DO", "referencia": "Apuntes Ing. Oralia Zamora — EDO 2do Orden", "construir": lambda r: _construir_edo_2do(r, "variable", "vibracion forzada variable")},
         {"id": "S7_RKOS_CHAPRA_25_8", "referencia": "Chapra & Canale (7a ed.), Ej. 25.8 — Oscilador masa-resorte", "construir": lambda r: _construir_edo_2do(r, "amortiguado", "oscilador masa-resorte-amortiguador")},
     ],
+}
+
+
+# Tiempos escalonados por dificultad (plan_de_mejoras_pia.md: Basico 240s, Intermedio 360s, Avanzado 480-600s)
+TIEMPOS_METODO: Dict[str, int] = {
+    "Interpolación lineal": 240,
+    "Newton hacia adelante": 360,
+    "Newton hacia atrás": 360,
+    "Lagrange": 360,
+    "Newton con diferencias divididas": 360,
+    "Metodo Grafico": 240,
+    "Metodo Bisectriz": 360,
+    "Metodo Newton-Raphson": 360,
+    "Metodo de la Falsa Posicion o Regula": 360,
+    "Secante": 360,
+    "Punto Fijo": 360,
+    "Montante": 480,
+    "Gauss - Jordan": 480,
+    "Eliminacion gaussiana": 480,
+    "Gauss-Seidel": 480,
+    "Jacobi": 480,
+    "Linea Recta": 360,
+    "Cuadratica": 480,
+    "Cubica": 540,
+    "Lineal con Funcion": 480,
+    "Cuadratica con Funcion": 540,
+    "Regla Trapezoidal": 360,
+    "Regla de 1/3 de Simpson": 360,
+    "Regla de 3/8 de Simpson": 360,
+    "Newton – Cotes Abiertas": 540,
+    "Newton - Cotes Cerradas": 480,
+    "Euler Modificado": 540,
+    "Runge - Kutta 2ndo Orden": 540,
+    "Runge - Kutta 3er Orden": 600,
+    "Runge - Kutta 4rto Orden por 1/3 de Simpson": 600,
+    "Runge - Kutta 4rto Orden por 3/8 de Simpson": 600,
+    "Runge - Kutta de Orden Superior": 600,
 }
 
 
@@ -1593,6 +1796,7 @@ def generar_desde_banco(
     mision["plantilla_id"] = plantilla["id"]
     mision["referencia"] = plantilla["referencia"]
     mision["seed_id"] = seed_final
+    mision["oxigeno_seg"] = int(TIEMPOS_METODO.get(nombre_metodo, mision.get("oxigeno_seg", 360)))
     return mision
 
 
