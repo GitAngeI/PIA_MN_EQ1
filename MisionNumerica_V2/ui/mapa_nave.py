@@ -147,12 +147,12 @@ class MapaNaveAurora(tk.Canvas):
             self._redibujar()
 
     def _caja_nave(self) -> Tuple[float, float, float, float]:
-        """Calcula la caja centrada 16:9 donde se dibuja el plano vectorial de la nave."""
+        """Calcula la caja centrada 16:9 aprovechando el espacio superior liberado."""
         w = max(self.winfo_width(), 320)
         h = max(self.winfo_height(), 220)
-        pad_x = max(12.0, w * 0.018)
-        pad_top = max(44.0, h * 0.085)
-        pad_bot = max(38.0, h * 0.075)
+        pad_x = max(10.0, w * 0.015)
+        pad_top = max(14.0, h * 0.025)
+        pad_bot = max(44.0, h * 0.082)
         disp_w = max(240.0, w - 2.0 * pad_x)
         disp_h = max(160.0, h - pad_top - pad_bot)
 
@@ -479,8 +479,8 @@ class MapaNaveAurora(tk.Canvas):
             )
 
     def _dibujar_salas_vectoriales(self, ox: float, oy: float, bw: float, bh: float):
-        tam_titulo = max(7, min(10, int(bw / 115)))
-        tam_sub = max(7, min(9, int(bw / 128)))
+        tam_titulo = max(9, min(12, int(bw / 92)))
+        tam_sub = max(9, min(11, int(bw / 102)))
 
         for sid, nombre, color_sala, metodos in SALAS:
             cx, cy, x0, y0, x1, y1 = self._rect_sala(sid)
@@ -496,18 +496,17 @@ class MapaNaveAurora(tk.Canvas):
 
             if es_actual:
                 borde = DORADO
-                grosor = 4
+                grosor = 3
             elif es_hover:
                 borde = AMBAR
-                grosor = 3
+                grosor = 2
             elif completa:
                 borde = ESMERALDA
                 grosor = 2
             else:
-                borde = color_sala
+                borde = "#5A4B7C"
                 grosor = 2
 
-            # Halo exterior si es sala activa o hover
             if es_actual or es_hover:
                 pad = 5 if es_actual else 3
                 self.create_rectangle(
@@ -515,42 +514,40 @@ class MapaNaveAurora(tk.Canvas):
                     fill="", outline=DORADO if es_actual else AMBAR, width=1, dash=(5, 4), tags="sala_layer",
                 )
 
-            # Fondo modular de sala
             self.create_rectangle(
                 x0, y0, x1, y1,
-                fill="#1B1533" if not completa else "#162629",
+                fill="#18132C" if not completa else "#142426",
                 outline=borde,
                 width=grosor,
                 tags="sala_layer",
             )
 
-            # Esquemático vectorial interior
             self._dibujar_interior_sala(sid, x0, y0, x1, y1, color_sala, completa)
 
-            # Barra superior con nombre legible
-            h_head = max(17.0, (y1 - y0) * 0.22)
+            h_head = max(20.0, (y1 - y0) * 0.24)
             self.create_rectangle(
                 x0 + 1, y0 + 1, x1 - 1, y0 + h_head,
-                fill=borde if es_actual else "#271F45", outline="", tags="sala_layer",
+                fill=DORADO if es_actual else ("#1B3330" if completa else "#241C3D"),
+                outline="",
+                tags="sala_layer",
             )
             self.create_text(
                 cx,
                 y0 + h_head * 0.5,
                 text=NOMBRES_CORTOS_MAPA[sid],
-                fill="#130F21" if es_actual else CREMA,
+                fill="#130F21" if es_actual else (ESMERALDA if completa else CREMA),
                 font=(FUENTE_UI, tam_titulo, "bold"),
                 tags="sala_layer",
             )
 
-            # Franja inferior con progreso e iconos de estrella
-            h_foot = max(16.0, (y1 - y0) * 0.20)
+            h_foot = max(18.0, (y1 - y0) * 0.22)
             self.create_rectangle(
                 x0 + 1, y1 - h_foot, x1 - 1, y1 - 1,
-                fill="#120E22", outline="", tags="sala_layer",
+                fill="#110D1F", outline="", tags="sala_layer",
             )
-            color_est = DORADO if prom_est >= 2.95 else (ESMERALDA if completa else CREMA)
+            color_est = DORADO if es_actual or prom_est >= 2.95 else (ESMERALDA if completa else GRIS_CALIDO)
             self.create_text(
-                x0 + (x1 - x0) * 0.30,
+                x0 + (x1 - x0) * 0.28,
                 y1 - h_foot * 0.5,
                 text=f"{comp}/{tot}",
                 fill=color_est,
@@ -558,9 +555,8 @@ class MapaNaveAurora(tk.Canvas):
                 tags="sala_layer",
             )
 
-            # 3 mini-estrellas (.5 reales) a la derecha del pie
-            star_r = max(4.2, min(6.2, (x1 - x0) * 0.042))
-            base_sx = x0 + (x1 - x0) * 0.62
+            star_r = max(4.6, min(6.6, (x1 - x0) * 0.044))
+            base_sx = x0 + (x1 - x0) * 0.60
             step_sx = star_r * 2.35
             for s in range(3):
                 if prom_est >= s + 1.0:
@@ -577,55 +573,41 @@ class MapaNaveAurora(tk.Canvas):
                     est_str,
                 )
 
-            # Tooltip discreto arriba si hover
             if es_hover:
                 self.create_text(
                     cx,
-                    y0 - 10,
-                    text=f"{sum_est:.1f}/{max_est:.0f} est. · Clic para entrar",
+                    y0 - 11,
+                    text=f"{sum_est:.1f}/{max_est:.0f} EST.  •  CLIC PARA ABRIR",
                     fill=DORADO,
                     font=(FUENTE_MONO, tam_sub, "bold"),
                     tags="sala_layer",
                 )
 
     def _dibujar_barra_progreso(self, w: int, h: int):
-        tot_comp = self.estado.total_completados()
-        tot_est = self.estado.total_estrellas()
         ox = 12
-        oy = 8
         bx1 = w - 12
-        oy2 = min(40, max(34, int(h * 0.068)))
-        self.create_rectangle(ox, oy, bx1, oy2, fill=PANEL_OSCURO, outline=BORDE_CALIDO, width=1)
+        fuente_hud = max(10, min(12, int(w / 76)))
 
-        fuente_hud = max(9, min(11, int(w / 82)))
+        nombre_sel = next((s[1] for s in SALAS if s[0] == self.sala_actual), "")
+        y_bot = h - max(34, int(h * 0.062))
+        self.create_rectangle(ox, y_bot, bx1, h - 6, fill="#141024", outline=BORDE_CALIDO, width=1)
         self.create_text(
-            ox + 12,
-            (oy + oy2) / 2,
+            ox + 16,
+            (y_bot + h - 6) / 2,
             anchor="w",
-            text=f"NAVE AURORA  |  METODOS: {tot_comp}/32  |  ESTRELLAS: {tot_est:.1f}/96.0",
+            text=f"SECTOR ACTIVO: 0{self.sala_actual} — {nombre_sel}",
             fill=DORADO,
             font=(FUENTE_UI, fuente_hud, "bold"),
         )
-        if w >= 660:
+        if w >= 640:
             self.create_text(
-                bx1 - 12,
-                (oy + oy2) / 2,
+                bx1 - 16,
+                (y_bot + h - 6) / 2,
                 anchor="e",
-                text="WASD / Flechas o clic directo en una sala",
-                fill=GRIS_CALIDO,
-                font=(FUENTE_UI, max(8, fuente_hud - 1)),
+                text="WASD / Flechas para mover   •   ENTER o Clic para ingresar",
+                fill=CREMA,
+                font=(FUENTE_UI, max(9, fuente_hud - 1)),
             )
-
-        nombre_sel = next((s[1] for s in SALAS if s[0] == self.sala_actual), "")
-        y_bot = h - max(28, int(h * 0.052))
-        self.create_rectangle(ox, y_bot, bx1, h - 6, fill=PANEL_OSCURO, outline=BORDE_CALIDO, width=1)
-        self.create_text(
-            w / 2,
-            (y_bot + h - 6) / 2,
-            text=f"SECTOR ACTIVO: 0{self.sala_actual} - {nombre_sel}   [ ENTER PARA ENTRAR ]",
-            fill=AMBAR,
-            font=(FUENTE_UI, fuente_hud, "bold"),
-        )
 
     def _dibujar_ingeniero(self, x: float, y: float):
         self.delete("ingeniero")

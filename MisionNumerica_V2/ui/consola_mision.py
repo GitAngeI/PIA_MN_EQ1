@@ -958,7 +958,7 @@ class ConsolaMision(tk.Frame):
         es_ex = self.estado.es_modo_examen
         if es_ex:
             self.estado.establecer_sin_limite_tiempo(False)
-            self.lbl_modo_badge.config(text="MODO EXAMEN INGE", bg=ROJO_OXIGENO, fg=CREMA)
+            self.lbl_modo_badge.config(text="MODO EXAMEN", bg=ROJO_OXIGENO, fg=CREMA)
             self.btn_nuevos_datos.boton.config(state="disabled", text="BLOQUEADO EXAMEN")
             self.calculadora.establecer_clipboard_bloqueado(True)
             self._aplicar_bloqueo_portapapeles(True)
@@ -1224,7 +1224,7 @@ class ConsolaMision(tk.Frame):
         self._mostrar_cortina_privacidad(
             titulo_motivo,
             (
-                "Se registro un incidente de abandono/minimizacion en Modo Examen Inge.\n"
+                "Se registro un incidente de abandono/minimizacion en Modo Examen.\n"
                 "Por politica anti-copia el problema actual fue invalidado y debes resolver otra variante."
             ),
             bloqueada_con_reset=True,
@@ -1344,7 +1344,7 @@ class ConsolaMision(tk.Frame):
 
         self.mision = generar_mision(self.nombre_metodo, excluir_plantilla_id=excluir_plantilla_id)
         self.paso_idx = 0
-        self.oxigeno_total = int(self.mision["oxigeno_seg"])
+        self.oxigeno_total = int(self.mision["oxigeno_seg"]) * 5
         self.oxigeno_restante = float(self.oxigeno_total)
         self._penalizacion_seg = 0.0
         self.errores_intento = 0

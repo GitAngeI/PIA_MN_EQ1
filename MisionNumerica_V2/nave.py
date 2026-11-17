@@ -214,172 +214,335 @@ class NaveAuroraApp(tk.Tk):
         self.var_modo.set(self.estado.modo_actual)
         self.var_alumno.set(self.estado.alumno)
         self.var_matricula.set(self.estado.matricula)
-        self.var_sin_tiempo.set(self.estado.sin_limite_tiempo)
 
         _, inner = self._crear_contenedor_scroll(self.contenedor, bg=FONDO_GALAXIA)
         inner.columnconfigure(0, weight=1)
         inner.rowconfigure(0, weight=1)
 
-        tarjeta = tk.Frame(inner, bg=PANEL_OSCURO, highlightbackground=AMBAR, highlightthickness=3, padx=28, pady=20)
-        tarjeta.pack(expand=True, padx=28, pady=20)
-
-        lbl_uni = tk.Label(tarjeta, text="METODOS NUMERICOS  -  FIME / UANL", bg=PANEL_OSCURO, fg=AMBAR, font=("Segoe UI", 15, "bold"))
-        lbl_uni.pack()
-        lbl_tit = tk.Label(tarjeta, text="PROYECTO AURORA // MISION NUMERICA", bg=PANEL_OSCURO, fg=DORADO, font=("Segoe UI", 22, "bold"))
-        lbl_tit.pack(pady=(4, 4))
-        lbl_sub = tk.Label(
-            tarjeta,
-            text="Banco de Problemas de Libro Parametrizados  |  32 Metodos en 7 Salas  |  Calificacion .5 Estrellas",
-            bg=PANEL_OSCURO, fg=CREMA, font=("Segoe UI", 12), justify="center", wraplength=780,
+        # Contenedor principal ajustado para caber completo en pantalla sin scroll
+        tarjeta = tk.Frame(
+            inner,
+            bg=PANEL_OSCURO,
+            highlightbackground=DORADO,
+            highlightthickness=2,
+            padx=34,
+            pady=16,
         )
-        lbl_sub.pack(pady=(2, 12))
+        tarjeta.grid(row=0, column=0, sticky="nsew", padx=28, pady=12)
+        tarjeta.columnconfigure(0, weight=1)
 
-        # Selector de Perfil y Credenciales del Alumno
-        panel_perfil = tk.Frame(tarjeta, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=16, pady=10)
-        panel_perfil.pack(fill="x", pady=(0, 12))
+        # 1. Encabezado institucional compacto
+        header = tk.Frame(tarjeta, bg=PANEL_OSCURO)
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        fila_modo = tk.Frame(panel_perfil, bg="#120E20")
+        lbl_uni = tk.Label(
+            header,
+            text="FIME — UANL  |  METODOS NUMERICOS",
+            bg=PANEL_OSCURO,
+            fg=GRIS_CALIDO,
+            font=("Segoe UI", 13, "bold"),
+        )
+        lbl_uni.pack()
+
+        lbl_tit = tk.Label(
+            header,
+            text="PROYECTO AURORA // MISION NUMERICA",
+            bg=PANEL_OSCURO,
+            fg=DORADO,
+            font=("Segoe UI", 24, "bold"),
+        )
+        lbl_tit.pack(pady=(2, 2))
+
+        lbl_sub = tk.Label(
+            header,
+            text="Simulador Academico de Analisis Numerico   •   32 Metodos en 7 Sectores   •   Evaluacion Auditada",
+            bg=PANEL_OSCURO,
+            fg=CREMA,
+            font=("Segoe UI", 13),
+            justify="center",
+            wraplength=960,
+        )
+        lbl_sub.pack(pady=(0, 2))
+
+        # 2. Panel de Configuracion de Sesion y Credenciales
+        panel_perfil = tk.Frame(
+            tarjeta,
+            bg="#141024",
+            highlightbackground=BORDE_CALIDO,
+            highlightthickness=1,
+            padx=22,
+            pady=12,
+        )
+        panel_perfil.grid(row=1, column=0, sticky="ew", pady=(0, 12))
+        panel_perfil.columnconfigure(0, weight=1)
+
+        fila_modo = tk.Frame(panel_perfil, bg="#141024")
         fila_modo.pack(fill="x", pady=(0, 8))
-        tk.Label(fila_modo, text="MODALIDAD:", bg="#120E20", fg=GRIS_CALIDO, font=(FUENTE_MONO, 10, "bold")).pack(side="left", padx=(0, 10))
+
+        tk.Label(
+            fila_modo,
+            text="MODALIDAD DE OPERACION:",
+            bg="#141024",
+            fg=DORADO,
+            font=(FUENTE_MONO, 12, "bold"),
+        ).pack(side="left", padx=(0, 14))
 
         btn_prac = tk.Button(
-            fila_modo, text="MODO PRACTICA (Con Pistas y Ayuda)", font=(FUENTE_MONO, 9, "bold"),
-            bd=0, padx=10, pady=6, cursor="hand2",
+            fila_modo,
+            text="MODO PRACTICA (Con Pistas y Apoyo)",
+            font=("Segoe UI", 12, "bold"),
+            bd=0,
+            padx=16,
+            pady=6,
+            cursor="hand2",
             command=lambda: self._cambiar_modo_inicio("practica"),
         )
-        btn_prac.pack(side="left", padx=(0, 8))
+        btn_prac.pack(side="left", padx=(0, 10))
 
         btn_exam = tk.Button(
-            fila_modo, text="MODO EXAMEN INGE (Anti-Fuga Estricto)", font=(FUENTE_MONO, 9, "bold"),
-            bd=0, padx=10, pady=6, cursor="hand2",
+            fila_modo,
+            text="MODO EXAMEN (Evaluacion Estricta)",
+            font=("Segoe UI", 12, "bold"),
+            bd=0,
+            padx=16,
+            pady=6,
+            cursor="hand2",
             command=lambda: self._cambiar_modo_inicio("examen"),
         )
         btn_exam.pack(side="left")
 
-        def _alternar_sin_tiempo():
-            es_ex = self.var_modo.get() == "examen"
-            if es_ex:
-                self.var_sin_tiempo.set(False)
-                self.estado.establecer_sin_limite_tiempo(False)
-                return
-            nuevo = self.estado.establecer_sin_limite_tiempo(bool(self.var_sin_tiempo.get()))
-            self.var_sin_tiempo.set(nuevo)
-
-        fila_rev = tk.Frame(panel_perfil, bg="#120E20")
-        fila_rev.pack(fill="x", pady=(0, 8))
-        chk_libre = tk.Checkbutton(
-            fila_rev,
-            text="Modo Evaluacion / Sin Limite de Tiempo (solo en Practica para revisar sin prisa)",
-            variable=self.var_sin_tiempo,
-            command=_alternar_sin_tiempo,
-            bg="#120E20",
-            fg=DORADO,
-            selectcolor=PANEL_ELEVADO,
-            activebackground="#120E20",
-            activeforeground=DORADO,
-            disabledforeground=GRIS_CALIDO,
-            font=("Segoe UI", 10, "bold"),
-            cursor="hand2",
-        )
-        chk_libre.pack(side="left")
-
         def _pintar_botones_modo():
             es_ex = self.var_modo.get() == "examen"
-            btn_prac.config(bg=PANEL_ELEVADO if es_ex else ESMERALDA, fg=CREMA if es_ex else FONDO_GALAXIA)
-            btn_exam.config(bg=ROJO_OXIGENO if es_ex else PANEL_ELEVADO, fg=CREMA)
-            if es_ex:
-                self.var_sin_tiempo.set(False)
-                chk_libre.config(state="disabled")
-            else:
-                chk_libre.config(state="normal")
+            btn_prac.config(
+                bg=PANEL_ELEVADO if es_ex else DORADO,
+                fg=GRIS_CALIDO if es_ex else FONDO_GALAXIA,
+            )
+            btn_exam.config(
+                bg=DORADO if es_ex else PANEL_ELEVADO,
+                fg=FONDO_GALAXIA if es_ex else GRIS_CALIDO,
+            )
 
         self._pintar_botones_modo_cb = _pintar_botones_modo
         _pintar_botones_modo()
 
-        fila_datos = tk.Frame(panel_perfil, bg="#120E20")
-        fila_datos.pack(fill="x")
-        tk.Label(fila_datos, text="Alumno:", bg="#120E20", fg=CREMA, font=("Segoe UI", 12, "bold")).pack(side="left", padx=(0, 6))
+        # Casilla de Modo Evaluacion / Sin Limite de Tiempo
+        self.var_sin_tiempo.set(bool(getattr(self.estado, "sin_limite_tiempo", False)))
+        chk = tk.Checkbutton(
+            panel_perfil,
+            text="  Modo Evaluacion / Sin Limite de Tiempo (solo en Practica para revisar sin prisa)",
+            variable=self.var_sin_tiempo,
+            command=self._aplicar_sin_limite,
+            bg="#141024",
+            fg=CREMA,
+            selectcolor=PANEL_ELEVADO,
+            activebackground="#141024",
+            activeforeground=DORADO,
+            font=("Segoe UI", 12, "bold"),
+            anchor="w",
+            cursor="hand2",
+        )
+        
+        chk.pack(fill="x", pady=(0, 8))
+        # Campos de Alumno y Matricula
+        fila_datos = tk.Frame(panel_perfil, bg="#141024")
+        fila_datos.pack(fill="x", pady=(2, 0))
+
+        tk.Label(
+            fila_datos,
+            text="NOMBRE DEL ALUMNO:",
+            bg="#141024",
+            fg=CREMA,
+            font=("Segoe UI", 13, "bold"),
+        ).pack(side="left", padx=(0, 10))
+
+        entry_alum_wrap = tk.Frame(fila_datos, bg="#0E0B1A", highlightbackground=BORDE_CALIDO, highlightthickness=1)
+        entry_alum_wrap.pack(side="left", fill="x", expand=True, padx=(0, 20))
         entry_alum = tk.Entry(
-            fila_datos, textvariable=self.var_alumno, width=26,
-            bg=PANEL_ELEVADO, fg=DORADO, insertbackground=DORADO, font=("Consolas", 11), relief="flat",
+            entry_alum_wrap,
+            textvariable=self.var_alumno,
+            bg="#0E0B1A",
+            fg=DORADO,
+            insertbackground=DORADO,
+            font=("Consolas", 14, "bold"),
+            relief="flat",
         )
-        entry_alum.pack(side="left", fill="x", expand=True, ipady=4, padx=(0, 14))
+        entry_alum.pack(fill="x", padx=8, ipady=4)
 
-        tk.Label(fila_datos, text="Matricula:", bg="#120E20", fg=CREMA, font=("Segoe UI", 12, "bold")).pack(side="left", padx=(0, 6))
+        tk.Label(
+            fila_datos,
+            text="MATRICULA:",
+            bg="#141024",
+            fg=CREMA,
+            font=("Segoe UI", 13, "bold"),
+        ).pack(side="left", padx=(0, 10))
+
+        entry_mat_wrap = tk.Frame(fila_datos, bg="#0E0B1A", highlightbackground=BORDE_CALIDO, highlightthickness=1)
+        entry_mat_wrap.pack(side="left")
         entry_mat = tk.Entry(
-            fila_datos, textvariable=self.var_matricula, width=15,
-            bg=PANEL_ELEVADO, fg=DORADO, insertbackground=DORADO, font=("Consolas", 11), relief="flat",
+            entry_mat_wrap,
+            textvariable=self.var_matricula,
+            width=14,
+            bg="#0E0B1A",
+            fg=DORADO,
+            insertbackground=DORADO,
+            font=("Consolas", 14, "bold"),
+            relief="flat",
         )
-        entry_mat.pack(side="left", ipady=4)
+        entry_mat.pack(padx=8, ipady=4)
 
-        self.lbl_aviso_inicio = tk.Label(panel_perfil, text="", bg="#120E20", fg=CORAL, font=("Segoe UI", 10, "bold"), wraplength=720)
-        self.lbl_aviso_inicio.pack(fill="x", pady=(6, 0))
+        self.lbl_aviso_inicio = tk.Label(
+            panel_perfil,
+            text="",
+            bg="#141024",
+            fg=CORAL,
+            font=("Segoe UI", 11, "bold"),
+            wraplength=920,
+        )
+        self.lbl_aviso_inicio.pack(fill="x", pady=(4, 0))
 
-        # Tarjetas de resumen del perfil activo (grid uniforme responsivo)
+        # 3. Tarjetas de Estado del Sistema
         comp = self.estado.total_completados()
         est_tot = self.estado.total_estrellas()
         integridad = int((comp / 32.0) * 100)
         stats = tk.Frame(tarjeta, bg=PANEL_OSCURO)
-        stats.pack(fill="x", pady=(0, 12))
+        stats.grid(row=2, column=0, sticky="ew", pady=(0, 12))
+
         tarjetas_data = (
-            ("PERFIL ACTIVO", self.estado.modo_actual.upper(), ROJO_OXIGENO if self.estado.es_modo_examen else ESMERALDA),
-            ("MODULOS", f"{comp}/32", ESMERALDA if comp == 32 else DORADO),
-            ("ESTRELLAS", f"{est_tot:.1f}/96.0", DORADO),
-            ("INTEGRIDAD", f"{integridad}%", AMBAR),
-            ("INCIDENTES FOCO", str(self.estado.incidentes_foco), ROJO_OXIGENO if self.estado.incidentes_foco else GRIS_CALIDO),
+            ("MODALIDAD ACTIVA", self.estado.modo_actual.upper(), DORADO),
+            ("MODULOS RESUELTOS", f"{comp} / 32", DORADO if comp < 32 else ESMERALDA),
+            ("ESTRELLAS OBTENIDAS", f"{est_tot:.1f} / 96.0", DORADO),
+            ("AVANCE DEL SISTEMA", f"{integridad}%", CREMA),
+            ("ALERTAS DE VENTANA", str(self.estado.incidentes_foco), CORAL if self.estado.incidentes_foco else CREMA),
         )
         for idx_s, (titulo_s, val_s, col_s) in enumerate(tarjetas_data):
             stats.columnconfigure(idx_s, weight=1, uniform="stat_box")
-            box = tk.Frame(stats, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=8, pady=8)
-            box.grid(row=0, column=idx_s, sticky="nsew", padx=3)
-            tk.Label(box, text=titulo_s, bg="#120E20", fg=GRIS_CALIDO, font=(FUENTE_MONO, 8, "bold")).pack()
-            tk.Label(box, text=val_s, bg="#120E20", fg=col_s, font=("Segoe UI", 14, "bold")).pack()
+            box = tk.Frame(
+                stats,
+                bg="#141024",
+                highlightbackground=BORDE_CALIDO,
+                highlightthickness=1,
+                padx=10,
+                pady=10,
+            )
+            box.grid(row=0, column=idx_s, sticky="nsew", padx=4)
+            tk.Label(
+                box,
+                text=titulo_s,
+                bg="#141024",
+                fg=GRIS_CALIDO,
+                font=(FUENTE_MONO, 10, "bold"),
+            ).pack(pady=(0, 2))
+            tk.Label(
+                box,
+                text=val_s,
+                bg="#141024",
+                fg=col_s,
+                font=("Segoe UI", 18, "bold"),
+            ).pack()
 
+        # 4. Botonera Principal de Navegacion
         btns = tk.Frame(tarjeta, bg=PANEL_OSCURO)
-        btns.pack(pady=(0, 10))
+        btns.grid(row=3, column=0, pady=(0, 10))
 
         crear_boton_3d(
-            btns, "INICIAR SISTEMA >",
+            btns,
+            "INICIAR SISTEMA  >",
             self._iniciar_desde_inicio,
-            bg=AMBAR, fg="#160F24", sombra="#8C4E22", fuente=("Segoe UI", 13, "bold"), padx=18, pady=9,
-        ).pack(side="left", padx=5)
+            bg=DORADO,
+            fg="#130F21",
+            sombra="#8C6D1F",
+            fuente=("Segoe UI", 14, "bold"),
+            padx=24,
+            pady=9,
+        ).pack(side="left", padx=6)
 
         crear_boton_3d(
-            btns, "BITACORA DE MISION",
+            btns,
+            "BITACORA DE MISION",
             lambda: self._transicion("CARGANDO BITACORA...", self.mostrar_historia),
-            bg=PANEL_ELEVADO, fg=CREMA, sombra="#120E20", fuente=("Segoe UI", 12, "bold"), padx=14, pady=9,
-        ).pack(side="left", padx=5)
+            bg=PANEL_ELEVADO,
+            fg=CREMA,
+            sombra="#120E20",
+            fuente=("Segoe UI", 13, "bold"),
+            padx=18,
+            pady=9,
+        ).pack(side="left", padx=6)
 
         crear_boton_3d(
-            btns, "AUDITORIA / CERTIFICADO",
+            btns,
+            "AUDITORIA Y CERTIFICADO",
             lambda: self._transicion("GENERANDO AUDITORIA...", self.mostrar_certificado_final),
-            bg=ESMERALDA if comp == 32 else PANEL_ELEVADO,
-            fg=FONDO_GALAXIA if comp == 32 else CREMA,
-            sombra="#120E20", fuente=("Segoe UI", 12, "bold"), padx=14, pady=9,
-        ).pack(side="left", padx=5)
+            bg=PANEL_ELEVADO,
+            fg=DORADO if comp == 32 else CREMA,
+            sombra="#120E20",
+            fuente=("Segoe UI", 13, "bold"),
+            padx=18,
+            pady=9,
+        ).pack(side="left", padx=6)
 
-        # Barra inferior secundaria: Exportacion y Reinicio a 0
+        # 5. Barra inferior de utilidades administrativas
         bar_sec = tk.Frame(tarjeta, bg=PANEL_OSCURO)
-        bar_sec.pack()
+        bar_sec.grid(row=4, column=0, pady=(2, 0))
 
         tk.Button(
-            bar_sec, text="EXPORTAR REPORTE (.TXT/.CSV/.JSON)",
+            bar_sec,
+            text="EXPORTAR REPORTE OFICIAL (.TXT / .CSV / .JSON)",
             command=lambda: self._exportar_reporte_dialogo(self.contenedor),
-            bg="#1E2B3D", fg=CREMA, font=(FUENTE_MONO, 9, "bold"), bd=0, padx=12, pady=6, cursor="hand2",
+            bg=PANEL_ELEVADO,
+            fg=CREMA,
+            activebackground=BORDE_CALIDO,
+            activeforeground=DORADO,
+            font=(FUENTE_MONO, 10, "bold"),
+            bd=0,
+            padx=16,
+            pady=7,
+            cursor="hand2",
         ).pack(side="left", padx=6)
 
         tk.Button(
-            bar_sec, text="REINICIAR PROGRESO A 0",
+            bar_sec,
+            text="REINICIAR PROGRESO A CERO",
             command=lambda: self._mostrar_modal_reinicio(self.contenedor),
-            bg="#4A1A28", fg=CREMA, font=(FUENTE_MONO, 9, "bold"), bd=0, padx=12, pady=6, cursor="hand2",
+            bg=PANEL_ELEVADO,
+            fg=CORAL,
+            activebackground=BORDE_CALIDO,
+            activeforeground=CREMA,
+            font=(FUENTE_MONO, 10, "bold"),
+            bd=0,
+            padx=16,
+            pady=7,
+            cursor="hand2",
         ).pack(side="left", padx=6)
 
         def _ajustar_inicio(ev):
-            lim = max(460, ev.width - 96)
+            lim = max(560, ev.width - 120)
             lbl_sub.config(wraplength=lim)
             self.lbl_aviso_inicio.config(wraplength=lim)
 
         inner.bind("<Configure>", _ajustar_inicio, add="+")
+
+    def _aplicar_sin_limite(self):
+        val = bool(self.var_sin_tiempo.get())
+        if hasattr(self.estado, "establecer_sin_limite_tiempo"):
+            self.estado.establecer_sin_limite_tiempo(val)
+        elif hasattr(self.estado, "cambiar_sin_limite_tiempo"):
+            self.estado.cambiar_sin_limite_tiempo(val)
+        else:
+            try:
+                self.estado.establecer_modo(
+                    self.var_modo.get(),
+                    alumno=self.var_alumno.get().strip(),
+                    matricula=self.var_matricula.get().strip(),
+                    sin_limite_tiempo=val,
+                )
+                return
+            except TypeError:
+                pass
+            for attr in ("_sin_limite_tiempo", "modo_sin_limite"):
+                if hasattr(self.estado, attr):
+                    setattr(self.estado, attr, val)
+            if hasattr(self.estado, "_perfil_activo"):
+                self.estado._perfil_activo()["sin_limite_tiempo"] = val
 
     def _cambiar_modo_inicio(self, modo: str):
         self.var_modo.set(modo)
@@ -396,10 +559,11 @@ class NaveAuroraApp(tk.Tk):
         mat = self.var_matricula.get().strip()
         if modo == "examen" and (len(alum) < 2 or len(mat) < 3):
             self.lbl_aviso_inicio.config(
-                text="En MODO EXAMEN INGE ingresa Nombre del Alumno y Matricula antes de iniciar.",
+                text="En MODO EXAMEN ingresa Nombre del Alumno y Matricula antes de iniciar.",
                 fg=ROJO_OXIGENO,
             )
             return
+        self._aplicar_sin_limite()
         self.estado.establecer_modo(modo, alumno=alum, matricula=mat)
         self._transicion("INICIANDO MAPA TACTICO...", self.mostrar_mapa_nave)
 
@@ -531,120 +695,268 @@ class NaveAuroraApp(tk.Tk):
 
     def mostrar_mapa_nave(self):
         self._limpiar()
-        top = tk.Frame(self.contenedor, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=2)
+        top = tk.Frame(self.contenedor, bg=PANEL_OSCURO, highlightbackground=DORADO, highlightthickness=2)
         top.pack(fill="x", padx=16, pady=(10, 6))
 
         tk.Button(
-            top, text="INICIO", command=lambda: self._transicion("VOLVIENDO AL INICIO...", self.mostrar_inicio),
-            bg=PANEL_ELEVADO, fg=CREMA, font=("Segoe UI", 12, "bold"), bd=0, padx=12, pady=6, cursor="hand2",
-        ).pack(side="left", padx=8, pady=7)
+            top,
+            text="< MENU INICIAL",
+            command=lambda: self._transicion("VOLVIENDO AL INICIO...", self.mostrar_inicio),
+            bg=PANEL_ELEVADO,
+            fg=CREMA,
+            activebackground=BORDE_CALIDO,
+            activeforeground=DORADO,
+            font=("Segoe UI", 12, "bold"),
+            bd=0,
+            padx=14,
+            pady=7,
+            cursor="hand2",
+        ).pack(side="left", padx=10, pady=7)
 
         tk.Label(
-            top, text="NAVE AURORA // PLANO DE SISTEMAS",
-            bg=PANEL_OSCURO, fg=DORADO, font=("Segoe UI", 13, "bold"),
-        ).pack(side="left", padx=6)
+            top,
+            text="NAVE AURORA  //  PLANO TACTICO DE SISTEMAS",
+            bg=PANEL_OSCURO,
+            fg=DORADO,
+            font=("Segoe UI", 15, "bold"),
+        ).pack(side="left", padx=8)
 
-        modo_txt = f"EXAMEN ({self.estado.alumno or 'Alumno'})" if self.estado.es_modo_examen else "PRACTICA"
+        modo_txt = f"MODO EXAMEN ({self.estado.alumno or 'Alumno'})" if self.estado.es_modo_examen else "MODO PRACTICA"
         tk.Label(
-            top, text=modo_txt,
-            bg=ROJO_OXIGENO if self.estado.es_modo_examen else ESMERALDA,
-            fg=CREMA if self.estado.es_modo_examen else FONDO_GALAXIA,
-            font=(FUENTE_MONO, 9, "bold"), padx=8, pady=3,
-        ).pack(side="left", padx=6)
-
-        comp = self.estado.total_completados()
-        tk.Label(
-            top, text=f"{comp}/32  |  {self.estado.total_estrellas():.1f}/96.0 EST.",
-            bg=PANEL_OSCURO, fg=ESMERALDA, font=(FUENTE_MONO, 10, "bold"),
-        ).pack(side="right", padx=10)
-
-        if comp == 32:
-            tk.Button(
-                top, text="CERTIFICADO",
-                command=lambda: self._transicion("CARGANDO CERTIFICADO...", self.mostrar_certificado_final),
-                bg=ESMERALDA, fg=FONDO_GALAXIA, font=("Segoe UI", 11, "bold"), bd=0, padx=10, pady=6, cursor="hand2",
-            ).pack(side="right", padx=4, pady=7)
+            top,
+            text=modo_txt,
+            bg="#141024",
+            fg=CORAL if self.estado.es_modo_examen else DORADO,
+            highlightbackground=CORAL if self.estado.es_modo_examen else BORDE_CALIDO,
+            highlightthickness=1,
+            font=(FUENTE_MONO, 10, "bold"),
+            padx=10,
+            pady=4,
+        ).pack(side="left", padx=8)
 
         tk.Button(
-            top, text="PROGRESO GALACTICO",
+            top,
+            text="RUTA DE PROGRESO",
             command=lambda: MapaProgresoUI(
-                self, self.estado,
+                self,
+                self.estado,
                 al_seleccionar_sala=lambda sid: self._transicion(f"ABRIENDO SALA {sid}...", lambda: self.mostrar_sala(sid)),
             ),
-            bg=AMBAR, fg="#160F24", font=("Segoe UI", 11, "bold"), bd=0, padx=12, pady=6, cursor="hand2",
-        ).pack(side="right", padx=6, pady=7)
+            bg=PANEL_ELEVADO,
+            fg=DORADO,
+            activebackground=BORDE_CALIDO,
+            activeforeground=CREMA,
+            font=("Segoe UI", 11, "bold"),
+            bd=0,
+            padx=14,
+            pady=7,
+            cursor="hand2",
+        ).pack(side="right", padx=10, pady=7)
+
+        comp = self.estado.total_completados()
+        if comp == 32:
+            tk.Button(
+                top,
+                text="CERTIFICADO",
+                command=lambda: self._transicion("CARGANDO CERTIFICADO...", self.mostrar_certificado_final),
+                bg=ESMERALDA,
+                fg=FONDO_GALAXIA,
+                font=("Segoe UI", 11, "bold"),
+                bd=0,
+                padx=12,
+                pady=7,
+                cursor="hand2",
+            ).pack(side="right", padx=4, pady=7)
+
+        tk.Label(
+            top,
+            text=f"MODULOS: {comp}/32   |   ESTRELLAS: {self.estado.total_estrellas():.1f}/96.0",
+            bg=PANEL_OSCURO,
+            fg=CREMA,
+            font=(FUENTE_MONO, 11, "bold"),
+        ).pack(side="right", padx=12)
 
         cuerpo_mapa = tk.Frame(self.contenedor, bg=FONDO_GALAXIA)
-        cuerpo_mapa.pack(fill="both", expand=True, padx=16, pady=(4, 12))
+        cuerpo_mapa.pack(fill="both", expand=True, padx=16, pady=(2, 12))
 
-        hud_der = tk.Frame(cuerpo_mapa, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=2, width=300)
-        hud_der.pack(side="right", fill="y", padx=(10, 0))
+        # Panel lateral derecho mas amplio, formal y con tipografia grande
+        hud_der = tk.Frame(
+            cuerpo_mapa,
+            bg=PANEL_OSCURO,
+            highlightbackground=BORDE_CALIDO,
+            highlightthickness=2,
+            width=360,
+        )
+        hud_der.pack(side="right", fill="y", padx=(12, 0))
         hud_der.pack_propagate(False)
 
-        lbl_hud_sid = tk.Label(hud_der, text="SALA 01", bg=PANEL_OSCURO, fg=DORADO, font=("Segoe UI", 15, "bold"), anchor="w")
-        lbl_hud_sid.pack(fill="x", padx=12, pady=(12, 2))
-        lbl_hud_tema = tk.Label(hud_der, text="", bg=PANEL_OSCURO, fg=GRIS_CALIDO, font=("Segoe UI", 11, "bold"), anchor="w", wraplength=260, justify="left")
-        lbl_hud_tema.pack(fill="x", padx=12, pady=(0, 8))
+        header_hud = tk.Frame(hud_der, bg="#141024", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=14, pady=12)
+        header_hud.pack(fill="x", padx=12, pady=(12, 10))
 
-        barra_sala = tk.Canvas(hud_der, height=14, bg="#120E20", highlightthickness=1, highlightbackground=BORDE_CALIDO)
-        barra_sala.pack(fill="x", padx=12, pady=(0, 8))
+        tk.Label(
+            header_hud,
+            text="SECTOR SELECCIONADO",
+            bg="#141024",
+            fg=GRIS_CALIDO,
+            font=(FUENTE_MONO, 9, "bold"),
+            anchor="w",
+        ).pack(fill="x")
+
+        lbl_hud_sid = tk.Label(
+            header_hud,
+            text="07. COMPUTADORA CENTRAL",
+            bg="#141024",
+            fg=DORADO,
+            font=("Segoe UI", 15, "bold"),
+            anchor="w",
+            wraplength=310,
+            justify="left",
+        )
+        lbl_hud_sid.pack(fill="x", pady=(2, 4))
+
+        lbl_hud_tema = tk.Label(
+            header_hud,
+            text="",
+            bg="#141024",
+            fg=CREMA,
+            font=("Segoe UI", 12),
+            anchor="w",
+            wraplength=310,
+            justify="left",
+        )
+        lbl_hud_tema.pack(fill="x", pady=(0, 8))
+
+        lbl_hud_prog = tk.Label(
+            header_hud,
+            text="AVANCE DEL SECTOR: 0 / 5 MODULOS",
+            bg="#141024",
+            fg=GRIS_CALIDO,
+            font=(FUENTE_MONO, 10, "bold"),
+            anchor="w",
+        )
+        lbl_hud_prog.pack(fill="x", pady=(0, 4))
+
+        barra_sala = tk.Canvas(header_hud, height=10, bg="#0D0A18", highlightthickness=1, highlightbackground=BORDE_CALIDO)
+        barra_sala.pack(fill="x")
+
+        tk.Label(
+            hud_der,
+            text="METODOS DEL SECTOR (CLIC PARA ABRIR):",
+            bg=PANEL_OSCURO,
+            fg=GRIS_CALIDO,
+            font=(FUENTE_MONO, 10, "bold"),
+            anchor="w",
+        ).pack(fill="x", padx=14, pady=(2, 4))
 
         btn_entrar_hud = tk.Button(
-            hud_der, text="ENTRAR A SALA >",
-            bg=AMBAR, fg="#160F24", font=("Segoe UI", 13, "bold"), bd=0, padx=12, pady=9, cursor="hand2",
+            hud_der,
+            text="INGRESAR A SALA  >",
+            bg=DORADO,
+            fg="#130F21",
+            activebackground=AMBAR,
+            activeforeground="#130F21",
+            font=("Segoe UI", 14, "bold"),
+            bd=0,
+            padx=14,
+            pady=11,
+            cursor="hand2",
         )
-        btn_entrar_hud.pack(side="bottom", fill="x", padx=12, pady=(6, 12))
+        btn_entrar_hud.pack(side="bottom", fill="x", padx=12, pady=(8, 12))
 
         lista_host = tk.Frame(hud_der, bg=PANEL_OSCURO)
         lista_host.pack(fill="both", expand=True, padx=12, pady=(0, 4))
         _, lista_hud = self._crear_contenedor_scroll(lista_host, bg=PANEL_OSCURO)
 
         def actualizar_hud(sid: int):
-            s_id, s_nom, s_col, s_mets = next(s for s in SALAS if s[0] == sid)
-            lbl_hud_sid.config(text=f"0{s_id}. {s_nom}", fg=s_col)
-            lbl_hud_tema.config(text=f"Tema: {TEMAS_SALAS.get(s_id, '')}")
+            s_id, s_nom, _s_col, s_mets = next(s for s in SALAS if s[0] == sid)
+            lbl_hud_sid.config(text=f"0{s_id}. {s_nom}", fg=DORADO)
+            lbl_hud_tema.config(text=f"Unidad: {TEMAS_SALAS.get(s_id, '')}")
             comp_s = sum(1 for m in s_mets if self.estado.completados.get(m))
-            frac = comp_s / max(len(s_mets), 1)
+            tot_s = max(len(s_mets), 1)
+            frac = comp_s / tot_s
+            lbl_hud_prog.config(
+                text=f"AVANCE DEL SECTOR: {comp_s} / {len(s_mets)} MODULOS",
+                fg=ESMERALDA if comp_s == len(s_mets) else GRIS_CALIDO,
+            )
             barra_sala.delete("all")
-            bw = max(barra_sala.winfo_width(), 240)
-            barra_sala.create_rectangle(0, 0, bw * frac, 14, fill=ESMERALDA if frac == 1 else s_col, outline="")
+            bw = max(barra_sala.winfo_width(), 280)
+            barra_sala.create_rectangle(
+                0, 0, bw * frac, 10,
+                fill=ESMERALDA if frac == 1 else DORADO,
+                outline="",
+            )
             for w in lista_hud.winfo_children():
                 w.destroy()
-            for m in s_mets:
+            for idx_m, m in enumerate(s_mets, start=1):
                 ok = self.estado.completados.get(m, False)
                 est_m = self.estado.obtener_estrellas(m) if ok else 0.0
-                row = tk.Frame(lista_hud, bg="#120E20", highlightbackground=ESMERALDA if ok else BORDE_CALIDO, highlightthickness=1, cursor="hand2")
-                row.pack(fill="x", pady=3)
-                lbl_ok = tk.Label(row, text=f"{est_m:.1f}*" if ok else "--", bg="#120E20", fg=ESMERALDA if ok else CORAL, font=("Consolas", 10, "bold"), width=5)
-                lbl_ok.pack(side="left", padx=4, pady=5)
-                lbl_m = tk.Label(row, text=m, bg="#120E20", fg=CREMA, font=("Segoe UI", 10), anchor="w")
-                lbl_m.pack(side="left", fill="x", expand=True, padx=4)
-                abrir_m = lambda _e, met=m, s=s_id: self._transicion("CARGANDO REPORTE...", lambda: self.mostrar_entorno_metodo(met, s))
+                borde_item = ESMERALDA if ok else BORDE_CALIDO
+                row = tk.Frame(
+                    lista_hud,
+                    bg="#141024",
+                    highlightbackground=borde_item,
+                    highlightthickness=1,
+                    padx=8,
+                    pady=7,
+                    cursor="hand2",
+                )
+                row.pack(fill="x", pady=4)
+
+                badge_txt = f"{est_m:.1f} ★" if ok else f"M{idx_m:02d}"
+                lbl_ok = tk.Label(
+                    row,
+                    text=badge_txt,
+                    bg="#1F1835" if not ok else "#132A26",
+                    fg=ESMERALDA if ok else DORADO,
+                    font=(FUENTE_MONO, 10, "bold"),
+                    width=6,
+                    pady=3,
+                )
+                lbl_ok.pack(side="left", padx=(2, 8))
+
+                lbl_m = tk.Label(
+                    row,
+                    text=m,
+                    bg="#141024",
+                    fg=CREMA,
+                    font=("Segoe UI", 11, "bold"),
+                    anchor="w",
+                    justify="left",
+                    wraplength=max(200, hud_w_cache[0] - 115),
+                )
+                lbl_m.pack(side="left", fill="x", expand=True)
+
+                abrir_m = lambda _e, met=m, s=s_id: self._transicion(
+                    "CARGANDO REPORTE...",
+                    lambda: self.mostrar_entorno_metodo(met, s),
+                )
                 row.bind("<Button-1>", abrir_m)
                 lbl_ok.bind("<Button-1>", abrir_m)
                 lbl_m.bind("<Button-1>", abrir_m)
+
             btn_entrar_hud.config(
-                bg=s_col,
                 command=lambda s=s_id: self._transicion(f"ABRIENDO SALA {s}...", lambda: self.mostrar_sala(s)),
             )
 
         mapa = MapaNaveAurora(
-            cuerpo_mapa, self.estado,
+            cuerpo_mapa,
+            self.estado,
             al_entrar_sala=lambda sid: self._transicion(f"ABRIENDO SALA {sid}...", lambda: self.mostrar_sala(sid)),
             al_cambiar_sala=actualizar_hud,
         )
         mapa.pack(side="left", fill="both", expand=True)
 
-        hud_w_cache = [300]
+        hud_w_cache = [360]
 
         def _ajustar_cuerpo_mapa(ev):
             if ev.width < 400:
                 return
-            w_hud = max(265, min(360, int(ev.width * 0.27)))
+            w_hud = max(320, min(420, int(ev.width * 0.30)))
             if abs(w_hud - hud_w_cache[0]) >= 12:
                 hud_w_cache[0] = w_hud
                 hud_der.config(width=w_hud)
-                lbl_hud_tema.config(wraplength=max(210, w_hud - 28))
+                lbl_hud_sid.config(wraplength=max(240, w_hud - 48))
+                lbl_hud_tema.config(wraplength=max(240, w_hud - 48))
                 actualizar_hud(mapa.sala_actual)
 
         cuerpo_mapa.bind("<Configure>", _ajustar_cuerpo_mapa)
@@ -658,10 +970,15 @@ class NaveAuroraApp(tk.Tk):
             ("<Up>", 0, -1), ("<Down>", 0, 1), ("<Left>", -1, 0), ("<Right>", 1, 0),
         ):
             self.bind(k, lambda _e, x=dx, y=dy: mapa.mover_tecla(x, y) if mapa.winfo_exists() else None)
-        self.bind("<Return>", lambda _e: self._transicion(
-            f"ABRIENDO SALA {mapa.sala_actual}...",
-            lambda: self.mostrar_sala(mapa.sala_actual),
-        ) if mapa.winfo_exists() else None)
+        self.bind(
+            "<Return>",
+            lambda _e: self._transicion(
+                f"ABRIENDO SALA {mapa.sala_actual}...",
+                lambda: self.mostrar_sala(mapa.sala_actual),
+            )
+            if mapa.winfo_exists()
+            else None,
+        )
 
     def mostrar_sala(self, sala_id: int):
         self._limpiar()
@@ -765,10 +1082,42 @@ class NaveAuroraApp(tk.Tk):
 
         rep_frame = tk.Frame(contenido, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=14, pady=10)
         rep_frame.pack(fill="x", pady=5)
-        tk.Label(rep_frame, text="REPORTE DE DANOS", bg="#120E20", fg=color_sala, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
+        tk.Label(rep_frame, text="DIAGNOSTICO DEL SISTEMA", bg="#120E20", fg=color_sala, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
+
+        fallos_por_sala = {
+            1: (
+                f"Los sensores opticos de {nombre_sala} registraron lecturas discretas incompletas durante la maniobra orbital. "
+                f"Emplea {nombre_metodo} para construir el modelo interpolante y estimar la coordenada intermedia faltante."
+            ),
+            2: (
+                f"El balance termodinamico en {nombre_sala} depende de una ecuacion no lineal que perdio su punto de equilibrio. "
+                f"Aplica {nombre_metodo} para aproximar la raiz real que estabiliza el regimen de empuje."
+            ),
+            3: (
+                f"Las mallas de distribucion en {nombre_sala} presentan un desbalance de cargas acopladas 3x3. "
+                f"Resuelve el sistema de ecuaciones lineales mediante {nombre_metodo} para restablecer los voltajes nominales."
+            ),
+            4: (
+                f"Las mediciones experimentales de {nombre_sala} presentan dispersion por ruido electromagnetico. "
+                f"Determina la curva de regresion por minimos cuadrados usando {nombre_metodo} para predecir el comportamiento del escudo."
+            ),
+            5: (
+                f"El control criogenico de {nombre_sala} requiere cuantificar el flujo acumulado a partir de muestras discretas y funciones de caudal. "
+                f"Calcula el valor de la integral definida aplicando {nombre_metodo}."
+            ),
+            6: (
+                f"El barrido de telemetria en {nombre_sala} obedece una ecuacion diferencial ordinaria de primer orden con condicion inicial conocida. "
+                f"Aproxima el estado futuro de la señal resolviendo el paso de integracion con {nombre_metodo}."
+            ),
+            7: (
+                f"El procesador de {nombre_sala} necesita simular trayectorias dinamicas de alta precision gobernadas por ecuaciones diferenciales. "
+                f"Calcula las pendientes acopladas y el siguiente estado del sistema utilizando {nombre_metodo}."
+            ),
+        }
+
         lbl_rep = tk.Label(
             rep_frame,
-            text=f"La anomalia electromagnetica ha desconfigurado {nombre_sala}. Recalibra los parametros usando {nombre_metodo}.",
+            text=fallos_por_sala.get(sala_id, f"Recalibra los parametros de {nombre_sala} usando {nombre_metodo}."),
             bg="#120E20", fg=CREMA, font=("Segoe UI", 13), justify="left", wraplength=780, anchor="w",
         )
         lbl_rep.pack(fill="x", pady=(4, 0))
@@ -777,7 +1126,7 @@ class NaveAuroraApp(tk.Tk):
         obj_frame.pack(fill="x", pady=5)
         tk.Label(obj_frame, text="OBJETIVO Y REGLAS", bg="#120E20", fg=ESMERALDA, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
         regla_ex = (
-            "MODO EXAMEN INGE ACTIVO: Pistas ocultas, portapapeles bloqueado y deteccion de abandono de ventana."
+            "MODO EXAMEN ACTIVO: Pistas ocultas, portapapeles bloqueado y deteccion de abandono de ventana."
             if self.estado.es_modo_examen
             else "MODO PRACTICA: Pistas habilitadas. 3.0 estrellas sin errores; -0.5 estrella por cada error."
         )
