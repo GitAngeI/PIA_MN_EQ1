@@ -427,7 +427,7 @@ FUNDAMENTOS_METODOS = {
     "Cuadratica con Funcion": "g(x) = a0 + a1*x + a2*x^2 + a3*f(x)\nSistema normal 4x4 con columnas 1, x, x^2, f(x).",
     "Regla Trapezoidal": "h = (b - a) / n\nI = (h/2) * [f(a) + 2*sum_{i=1..n-1} f(a+ih) + f(b)]",
     "Regla de 1/3 de Simpson": "n siempre par, h = (b - a) / n\nI = (h/3) * [f(a) + 4*sum_impares + 2*sum_pares + f(b)]",
-    "Regla de 3/8 de Simpson": "n multiplo de 3, h = (b - a) / n\nI = (3h/8) * [f(x0) + 3*f(x1) + 3*f(x2) + f(x3)]",
+    "Regla de 3/8 de Simpson": "h = (b - a) / n\nI = (3/8)h * [f(a) + 3*sum_{i=1..n-1} f(a+ih) + f(b)]",
     "Newton – Cotes Abiertas": "h = (b - a) / (n + 2),  x_i = a + i*h  (i = 0..n+2)\nI = alpha_n * h * sum c_i * f(x_i)  (extremos con peso 0).",
     "Newton - Cotes Cerradas": "h = (b - a) / n,  x_i = a + i*h  (i = 0..n)\nI = alpha_n * h * sum_{i=0..n} c_i * f(x_i)",
     "Euler Modificado": "Despejar y' = f(y, t),  t_{n+1} = t_n + h\ny'_{n+1} = y_n + (h/2) * [f(y_n, t_n) + f(y_{n+1}, t_{n+1})]",

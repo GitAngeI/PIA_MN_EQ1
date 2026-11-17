@@ -1171,7 +1171,7 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
         formula = "h = (b - a)/n (n par)   |   I = (h/3) * [f0 + 4*sum impares + 2*sum pares + fn]"
     elif metodo == "Regla de 3/8 de Simpson":
         n = r.choice([3, 6])
-        formula = "h = (b - a)/n (n mult. 3)   |   I = (3h/8) * [f0 + 3*sum_{i%3!=0} fi + 2*sum_{i%3==0} fi + fn]"
+        formula = "h = (b - a)/n (n mult. 3)   |   I = (3/8)h * [f(a) + 3*sum_{i=1}^{n-1} f(a+ih) + f(b)]"
     elif "Abiertas" in metodo:
         n = r.choice([2, 3, 4])
         alpha_txt = abiertas_alpha[n]

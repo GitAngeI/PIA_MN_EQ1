@@ -340,7 +340,7 @@ GUIAS_METODOS: Dict[str, Dict[str, Any]] = {
         "fuente": "OR/Integracion/R3octavosSimpson.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
             "Requisito: n multiplo de 3.   h = (b - a) / n\n"
-            "Simple (n=3): I = (3h / 8) * [ f(x0) + 3*f(x1) + 3*f(x2) + f(x3) ]\n"
+            "Simple (n=3): I = (3/8)h * [ f(a) + 3 * sum_{i=1}^{n-1} f(a + i*h) + f(b) ]\n"
             "Compuesta: pesos [1, 3, 3, 2, 3, 3, ..., 1]"
         ),
         "variables": "n multiplo de 3; nodos internos no multiplos de 3 llevan peso 3; multiplos internos de 3 llevan peso 2.",

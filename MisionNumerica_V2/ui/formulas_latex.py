@@ -36,7 +36,7 @@ LATEX_METODOS: Dict[str, str] = {
     "Cuadratica con Funcion": r"$g(x) = a_0 + a_1 x + a_2 x^2 + a_3 f(x), \quad f(x) \in \{e^x, \sin x, \cos x, \tan x, \ln x\}$",
     "Regla Trapezoidal": r"$h = \frac{b - a}{n}, \quad I = \frac{h}{2}\left[f(a) + 2\sum_{i=1}^{n-1} f(a + ih) + f(b)\right]$",
     "Regla de 1/3 de Simpson": r"$n\;\mathrm{par},\; h = \frac{b-a}{n}, \quad I = \frac{h}{3}\left[f(a) + 4\sum_{\mathrm{impar}} f(x_i) + 2\sum_{\mathrm{par}} f(x_i) + f(b)\right]$",
-    "Regla de 3/8 de Simpson": r"$n = 3k,\; h = \frac{b-a}{n}, \quad I = \frac{3h}{8}\left[f(x_0) + 3f(x_1) + 3f(x_2) + f(x_3)\right]$",
+    "Regla de 3/8 de Simpson": r"$h = \frac{b-a}{n}, \quad I = \frac{3}{8}h\left[f(a) + 3\sum_{i=1}^{n-1} f(a+ih) + f(b)\right]$",
     "Newton – Cotes Abiertas": "$h = \\frac{b - a}{n + 2}, \\quad x_i = a + i\\,h \\;(i=0..n+2), \\quad c_0 = c_{n+2} = 0$\n$I = \\alpha_n\\, h \\sum_{i=1}^{n+1} c_i\\, f(x_i)$",
     "Newton - Cotes Cerradas": "$h = \\frac{b - a}{n}, \\quad x_i = a + i\\,h \\;(i=0..n)$\n$I = \\alpha_n\\, h \\sum_{i=0}^{n} c_i\\, f(x_i)$",
     "Euler Modificado": "$y' = f(y, t), \\quad t_{n+1} = t_n + h, \\quad y_{n+1}^* = y_n + h\\,f(y_n, t_n)$\n$y'_{n+1} = y_n + \\frac{h}{2}\\left[f(y_n, t_n) + f(y_{n+1}^*, t_{n+1})\\right]$",
