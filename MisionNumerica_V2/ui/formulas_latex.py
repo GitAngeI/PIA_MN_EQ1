@@ -44,9 +44,8 @@ LATEX_METODOS: Dict[str, str] = {
     "Runge - Kutta 3er Orden": "$k_1 = h f(y_n,t_n), \\; k_2 = h f\\left(y_n + \\frac{k_1}{2}, t_n + \\frac{h}{2}\\right), \\; k_3 = h f(y_n - k_1 + 2k_2, t_n + h)$\n$y_{n+1} = y_n + \\frac{1}{6}(k_1 + 4k_2 + k_3)$",
     "Runge - Kutta 4rto Orden por 1/3 de Simpson": "$k_1 = h f(y_n,t_n), \\; k_2 = h f\\left(y_n+\\frac{k_1}{2}, t_n+\\frac{h}{2}\\right), \\; k_3 = h f\\left(y_n+\\frac{k_2}{2}, t_n+\\frac{h}{2}\\right), \\; k_4 = h f(y_n+k_3, t_n+h)$\n$y_{n+1} = y_n + \\frac{1}{6}(k_1 + 2k_2 + 2k_3 + k_4)$",
     "Runge - Kutta 4rto Orden por 3/8 de Simpson": "$k_1 = h f(y_n,t_n), \\; k_2 = h f\\left(y_n+\\frac{k_1}{3}, t_n+\\frac{h}{3}\\right), \\; k_3 = h f\\left(y_n+\\frac{k_1+k_2}{3}, t_n+\\frac{2h}{3}\\right), \\; k_4 = h f(y_n+k_1-k_2+k_3, t_n+h)$\n$y_{n+1} = y_n + \\frac{1}{8}(k_1 + 3k_2 + 3k_3 + k_4)$",
-    "Runge - Kutta de Orden Superior": "$U_n=y_n,\\; V_n=y'_n,\\; q_n=t_n:\\; k_1=hV_n,\\; m_1=h\\,g(V_n,U_n,q_n),\\; k_2=h(V_n+m_1),\\; m_2=h\\,g(V_n+m_1,U_n+k_1,q_n+h)$\n$y_{n+1} = U_n + \\frac{1}{2}(k_1 + k_2), \\quad y'_{n+1} = V_n + \\frac{1}{2}(m_1 + m_2)$",
+    "Runge - Kutta de Orden Superior": "$k_1 = h\\,V_n, \\quad m_1 = h[\\pm a V_n \\pm b U_n, q_n]$\n$k_2 = h(V_n + m_1), \\quad m_2 = h[\\pm a(V_n + m_1) \\pm b(U_n + k_1), q_n + h]$\n$y_{n+1} = y_n + \\frac{1}{2}(k_1 + k_2), \\quad y'_{n+1} = y'_n + \\frac{1}{2}(m_1 + m_2)$",
 }
-
 
 _CACHE_IMAGENES: "OrderedDict[Tuple[int, str, str, int, int], ImageTk.PhotoImage]" = OrderedDict()
 

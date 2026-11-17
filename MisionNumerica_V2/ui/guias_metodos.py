@@ -478,11 +478,11 @@ GUIAS_METODOS: Dict[str, Dict[str, Any]] = {
     "Runge - Kutta de Orden Superior": {
         "fuente": "OR/EDO/R-KOrdenSuperior.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Variables: Un = y_n,   Vn = y'_n,   qn = t_n,   V' = g(V, U, t)\n"
-            "k1 = h * Vn,             m1 = h * g(Vn, Un, qn)\n"
-            "k2 = h * (Vn + m1),      m2 = h * g(Vn + m1, Un + k1, qn + h)\n"
-            "y_{n+1}  = Un + (1/2)*(k1 + k2)\n"
-            "y'_{n+1} = Vn + (1/2)*(m1 + m2)"
+            "Vn = y'_n,   Un = y_n,   qn = t_n\n"
+            "k1 = h * Vn,             m1 = h * [±a*Vn ± b*Un, qn]\n"
+            "k2 = h * (Vn + m1),      m2 = h * [±a*(Vn + m1) ± b*(Un + k1), qn + h]\n"
+            "y_{n+1}  = y_n + (1/2)*(k1 + k2)\n"
+            "y'_{n+1} = y'_n + (1/2)*(m1 + m2)"
         ),
         "variables": "U representa a y, V representa a y'. k avanza a y; m avanza a y'.",
         "pasos_guia": [

@@ -435,5 +435,5 @@ FUNDAMENTOS_METODOS = {
     "Runge - Kutta 3er Orden": "k1 = h*f(yn,tn), k2 = h*f(yn+k1/2, tn+h/2), k3 = h*f(yn-k1+2k2, tn+h)\ny_{n+1} = yn + (1/6)*(k1 + 4*k2 + k3)",
     "Runge - Kutta 4rto Orden por 1/3 de Simpson": "k1=h*f(yn,tn), k2=h*f(yn+k1/2,tn+h/2), k3=h*f(yn+k2/2,tn+h/2), k4=h*f(yn+k3,tn+h)\ny_{n+1} = yn + (1/6)*(k1 + 2*k2 + 2*k3 + k4)",
     "Runge - Kutta 4rto Orden por 3/8 de Simpson": "k1=h*f(yn,tn), k2=h*f(yn+k1/3,tn+h/3), k3=h*f(yn+k1/3+k2/3,tn+2h/3), k4=h*f(yn+k1-k2+k3,tn+h)\ny_{n+1} = yn + (1/8)*(k1 + 3*k2 + 3*k3 + k4)",
-    "Runge - Kutta de Orden Superior": "V_n = y'_n, U_n = y_n, q_n = t_n\nk1=h*Vn, m1=h*g(Vn,Un,qn), k2=h*(Vn+m1), m2=h*g(Vn+m1,Un+k1,qn+h)",
+    "Runge - Kutta de Orden Superior": "k1=h*Vn, m1=h[±a*Vn ± b*Un, qn]\nk2=h*(Vn+m1), m2=h[±a*(Vn+m1) ± b*(Un+k1), qn+h]\ny_{n+1} = y_n + 0.5*(k1+k2),  y'_{n+1} = y'_n + 0.5*(m1+m2)",
 }
