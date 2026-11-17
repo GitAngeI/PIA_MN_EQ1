@@ -22,7 +22,7 @@ LATEX_METODOS: Dict[str, str] = {
     "Metodo Bisectriz": r"$x_i = \frac{a + b}{2} \;\;(f(a)f(b)<0), \quad \varepsilon = |x_{i+1} - x_i| \leq 0.001$",
     "Metodo Newton-Raphson": r"$x_{i+1} = x_i - \frac{f(x_i)}{f'(x_i)}, \quad \varepsilon = |x_{i+1} - x_i| \leq 0.001$",
     "Metodo de la Falsa Posicion o Regula": r"$x_i = a - \frac{f(a)(b - a)}{f(b) - f(a)}, \quad \varepsilon = |x_{i+1} - x_i| \leq 0.001$",
-    "Secante": r"$x_{i+1} = x_i - \frac{f(x_i)(x_{i-1} - x_i)}{f(x_{i-1}) - f(x_i)}, \quad \varepsilon = |x_{i+1} - x_i| \leq 0.001$",
+    "Secante": r"$x_{i+1} = x_{i+1} - \left( \frac{f(x_{i+1})(x_{i+1} - x_i)}{f(x_{i+1}) - f(x_i)} \right), \quad \varepsilon = |x_{i+1} - x_i| \leq 0.001$",
     "Punto Fijo": r"$f(x) = 0 \;\Rightarrow\; x = g(x) \;\;(|g'(x_0)| < 1), \quad x_{i+1} = g(x_i), \quad \varepsilon = |x_{i+1} - x_i|$",
     "Montante": r"$p_{\mathrm{ant}}=1, \quad a'_{ij} = \frac{a_{kk}\,a_{ij} - a_{ik}\,a_{kj}}{p_{\mathrm{ant}}}, \quad x_i = \frac{b'_i}{\det(A)}$",
     "Gauss - Jordan": r"$[A \mid b] \longrightarrow [I \mid x] \quad (\mathrm{pivote}=1,\; \mathrm{anular\; arriba\; y\; abajo})$",

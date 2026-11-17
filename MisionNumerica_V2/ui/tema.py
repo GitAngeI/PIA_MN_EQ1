@@ -114,7 +114,7 @@ FUNDAMENTOS_METODOS = {
     "Metodo Bisectriz": "x_i = (a + b) / 2   (requiere f(a)*f(b) < 0)\nCriterio de paro: e = |x_{i+1} - x_i| <= 0.001",
     "Metodo Newton-Raphson": "x_{i+1} = x_i - f(x_i) / f'(x_i)\nCriterio de paro: e = |x_{i+1} - x_i| <= 0.001",
     "Metodo de la Falsa Posicion o Regula": "x_i = a - f(a)*(b - a) / (f(b) - f(a))\nCriterio de paro: e = |x_{i+1} - x_i| <= 0.001",
-    "Secante": "x_{i+1} = x_i - f(x_i)*(x_i - x_{i-1}) / (f(x_i) - f(x_{i-1}))\nCriterio de paro: e = |x_{i+1} - x_i| <= 0.001",
+    "Secante": "x_{i+1} = x_{i+1} - (f(x_{i+1})*(x_{i+1} - x_i)) / (f(x_{i+1}) - f(x_i))\nCriterio de paro: e = |x_{i+1} - x_i| <= 0.001",
     "Punto Fijo": "Despejar f(x) = 0  =>  x = g(x) con |g'(x0)| < 1\nx_{i+1} = g(x_i),  e = |x_{i+1} - x_i| <= 0.001",
     "Montante": "Pivote anterior inicial p_ant = 1.\na'_ij = (a_kk * a_ij - a_ik * a_kj) / p_ant,  x_i = b'_i / det(A).",
     "Gauss - Jordan": "Reduccion por filas hasta matriz identidad [I | x].\nNormalizar pivote y anular arriba y abajo.",

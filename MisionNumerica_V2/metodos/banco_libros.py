@@ -709,7 +709,7 @@ def _construir_raiz_abierta(r: random.Random, metodo: str, modo: str) -> Dict[st
             "metodo": metodo,
             "sala_id": 2,
             "oxigeno_seg": 360,
-            "formula": "x_{i+1} = x_i - [f(x_i)*(x_i - x_{i-1})] / [f(x_i) - f(x_{i-1})]",
+            "formula": "x_{i+1} = x_{i+1} - [f(x_{i+1})*(x_{i+1} - x_i)] / [f(x_{i+1}) - f(x_i)]",
             "enunciado": f"Aplica el metodo de la Secante a f(x) = {f_txt} con valores iniciales x0 = {x_0} y x1 = {x_1}.",
             "datos_tabla": (["Parametro", "Valor"], [["f(x)", f_txt], ["x0", x_0], ["x1", x_1], ["f(x0)", _red(f(x_0), 4)], ["f(x1)", _red(f(x_1), 4)]]),
             "tabla_progresiva": {"titulo": "Iteraciones Secante", "columnas": ["Iter", "x_{i-1}", "x_i", "x_{i+1}"], "filas": filas_tp},
