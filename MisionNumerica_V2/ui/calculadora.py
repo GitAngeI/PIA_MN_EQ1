@@ -16,6 +16,7 @@ from .tema import (
     PANEL_ELEVADO,
     PANEL_OSCURO,
     ROJO_OXIGENO,
+    obtener_paleta,
 )
 
 
@@ -314,42 +315,50 @@ class CalculadoraCientifica(tk.Frame):
         self,
         master,
         al_enviar_resultado=None,
-        bg=PANEL_OSCURO,
-        acento=AMBAR,
+        bg=None,
+        acento=None,
         permitir_clipboard=True,
     ):
+        pal = obtener_paleta()
+        bg_eff = bg if bg is not None else pal["panel"]
+        acento_eff = acento if acento is not None else pal["acento"]
         super().__init__(
             master,
-            bg=bg,
-            highlightbackground=BORDE_CALIDO,
+            bg=bg_eff,
+            highlightbackground=pal["borde"],
             highlightthickness=1,
             padx=6,
             pady=5,
         )
         self.al_enviar_resultado = al_enviar_resultado
-        self.acento = acento
+        self.acento = acento_eff
+        self._bg_manual = bg
+        self._acento_manual = acento
         self.permitir_clipboard = bool(permitir_clipboard)
         self.modo_grados = False
         self.ans = 0.0
         self.ultimo_valor_str = ""
+        self._grids = []
+        self._botones_tecla = []
 
-        encabezado = tk.Frame(self, bg=bg)
-        encabezado.pack(fill=tk.X, pady=(0, 3))
-        tk.Label(
-            encabezado,
+        self.encabezado = tk.Frame(self, bg=bg_eff)
+        self.encabezado.pack(fill=tk.X, pady=(0, 3))
+        self.lbl_calc_titulo = tk.Label(
+            self.encabezado,
             text="CALCULADORA CIENTIFICA",
             font=("Consolas", 10, "bold"),
-            fg=acento,
-            bg=bg,
-        ).pack(side=tk.LEFT)
+            fg=acento_eff,
+            bg=bg_eff,
+        )
+        self.lbl_calc_titulo.pack(side=tk.LEFT)
 
         self.btn_modo_ang = tk.Button(
-            encabezado,
+            self.encabezado,
             text="RAD",
             font=("Consolas", 9, "bold"),
-            fg=FONDO_GALAXIA,
-            bg=DORADO,
-            activebackground=AMBAR,
+            fg=pal["texto_en_acento"],
+            bg=pal["titulo"],
+            activebackground=acento_eff,
             bd=0,
             padx=8,
             pady=2,
@@ -359,30 +368,30 @@ class CalculadoraCientifica(tk.Frame):
         self.btn_modo_ang.pack(side=tk.RIGHT)
 
         self.lbl_ans = tk.Label(
-            encabezado,
+            self.encabezado,
             text="ANS = 0",
             font=(FUENTE_MONO, 9),
-            fg=GRIS_CALIDO,
-            bg=bg,
+            fg=pal["texto_sec"],
+            bg=bg_eff,
         )
         self.lbl_ans.pack(side=tk.RIGHT, padx=(0, 8))
 
-        visor = tk.Frame(
+        self.visor = tk.Frame(
             self,
-            bg=FONDO_GALAXIA,
-            highlightbackground=BORDE_CALIDO,
+            bg=pal["superficie"],
+            highlightbackground=pal["borde"],
             highlightthickness=1,
             padx=6,
             pady=3,
         )
-        visor.pack(fill=tk.X, pady=(0, 3))
+        self.visor.pack(fill=tk.X, pady=(0, 3))
 
         self.entry_expr = tk.Entry(
-            visor,
+            self.visor,
             font=("Consolas", 11),
-            bg=FONDO_GALAXIA,
-            fg=CREMA,
-            insertbackground=acento,
+            bg=pal["superficie"],
+            fg=pal["texto"],
+            insertbackground=acento_eff,
             bd=0,
             justify=tk.RIGHT,
         )
@@ -393,11 +402,11 @@ class CalculadoraCientifica(tk.Frame):
             self.establecer_clipboard_bloqueado(True)
 
         self.lbl_resultado = tk.Label(
-            visor,
+            self.visor,
             text="= 0",
             font=("Consolas", 11, "bold"),
-            fg=ESMERALDA,
-            bg=FONDO_GALAXIA,
+            fg=pal["exito"],
+            bg=pal["superficie"],
             anchor="e",
         )
         self.lbl_resultado.pack(fill=tk.X, pady=(2, 0))
@@ -406,23 +415,15 @@ class CalculadoraCientifica(tk.Frame):
             self,
             text="",
             font=("Consolas", 8),
-            fg=ROJO_OXIGENO,
-            bg=bg,
+            fg=pal["peligro"],
+            bg=bg_eff,
             anchor="w",
             wraplength=340,
             justify=tk.LEFT,
         )
         self.lbl_error.pack(fill=tk.X, pady=(0, 2))
 
-        estilos = {
-            "num": ("#2C234B", CREMA, "#3B2F63"),
-            "op": ("#241B3E", DORADO, "#342859"),
-            "fn": ("#1C1533", GRIS_CALIDO, "#2D234D"),
-            "const": ("#20183B", AMBAR, "#32265A"),
-            "ctrl": ("#3D253B", CREMA, "#543250"),
-            "ctrl_danger": ("#592234", CREMA, "#7A2D46"),
-            "eq": (ESMERALDA, FONDO_GALAXIA, "#7CF0B8"),
-        }
+        estilos = pal["calc_estilos"]
 
         teclas_sci = [
             [
@@ -480,19 +481,19 @@ class CalculadoraCientifica(tk.Frame):
             ],
         ]
 
-        self._poblar_cuadricula(bg, 7, teclas_sci, estilos, expand=False, pady_grid=(0, 2))
-        self._poblar_cuadricula(bg, 6, teclas_num, estilos, expand=True)
+        self._poblar_cuadricula(bg_eff, 7, teclas_sci, estilos, expand=False, pady_grid=(0, 2))
+        self._poblar_cuadricula(bg_eff, 6, teclas_num, estilos, expand=True)
 
-        barra_acciones = tk.Frame(self, bg=bg)
-        barra_acciones.pack(fill=tk.X, pady=(4, 0))
+        self.barra_acciones = tk.Frame(self, bg=bg_eff)
+        self.barra_acciones.pack(fill=tk.X, pady=(4, 0))
 
         self.btn_calcular = tk.Button(
-            barra_acciones,
+            self.barra_acciones,
             text="CALCULAR (=)",
             font=("Consolas", 9, "bold"),
-            bg=ESMERALDA,
-            fg=FONDO_GALAXIA,
-            activebackground="#7CF0B8",
+            bg=pal["exito"],
+            fg=pal["texto_en_exito"],
+            activebackground=pal["calc_act_exito"],
             bd=0,
             padx=8,
             pady=4,
@@ -502,12 +503,12 @@ class CalculadoraCientifica(tk.Frame):
         self.btn_calcular.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
 
         self.btn_enviar = tk.Button(
-            barra_acciones,
+            self.barra_acciones,
             text="ENVIAR A RESPUESTA ->",
             font=("Consolas", 9, "bold"),
-            bg=DORADO,
-            fg=FONDO_GALAXIA,
-            activebackground=AMBAR,
+            bg=pal["titulo"],
+            fg=pal["texto_en_acento"],
+            activebackground=acento_eff,
             bd=0,
             padx=8,
             pady=4,
@@ -519,6 +520,7 @@ class CalculadoraCientifica(tk.Frame):
     def _poblar_cuadricula(self, bg: str, cols: int, filas, estilos: dict, expand: bool = True, pady_grid=0) -> None:
         grid = tk.Frame(self, bg=bg)
         grid.pack(fill=tk.BOTH, expand=expand, pady=pady_grid)
+        self._grids.append(grid)
         for c in range(cols):
             grid.columnconfigure(c, weight=1)
         for r_idx, fila in enumerate(filas):
@@ -534,7 +536,7 @@ class CalculadoraCientifica(tk.Frame):
                 else:
                     cmd = lambda t=token: self._insertar(t)
 
-                tk.Button(
+                b = tk.Button(
                     grid,
                     text=etiqueta,
                     font=("Consolas", 9, "bold"),
@@ -546,7 +548,38 @@ class CalculadoraCientifica(tk.Frame):
                     pady=3,
                     cursor="hand2",
                     command=cmd,
-                ).grid(row=r_idx, column=c_idx, sticky="nsew", padx=1, pady=1)
+                )
+                b.grid(row=r_idx, column=c_idx, sticky="nsew", padx=1, pady=1)
+                self._botones_tecla.append((b, tipo))
+
+    def aplicar_tema(self, bg=None, acento=None) -> None:
+        pal = obtener_paleta()
+        bg_eff = bg if bg is not None else pal["calc_bg"]
+        acento_eff = acento if acento is not None else pal["acento"]
+        self.acento = acento_eff
+        self.configure(bg=bg_eff, highlightbackground=pal["borde"])
+        self.encabezado.configure(bg=bg_eff)
+        self.lbl_calc_titulo.configure(bg=bg_eff, fg=acento_eff)
+        self.lbl_ans.configure(bg=bg_eff, fg=pal["texto_sec"])
+        self.btn_modo_ang.configure(
+            fg=pal["texto_en_acento"],
+            bg=pal["alerta"] if self.modo_grados else pal["titulo"],
+            activebackground=acento_eff,
+        )
+        self.visor.configure(bg=pal["superficie"], highlightbackground=pal["borde"])
+        self.entry_expr.configure(bg=pal["superficie"], fg=pal["texto"], insertbackground=acento_eff)
+        es_err = self.lbl_resultado.cget("text") == "= ERROR"
+        self.lbl_resultado.configure(bg=pal["superficie"], fg=pal["peligro"] if es_err else pal["exito"])
+        self.lbl_error.configure(bg=bg_eff, fg=pal["peligro"])
+        for g in self._grids:
+            g.configure(bg=bg_eff)
+        estilos = pal["calc_estilos"]
+        for btn, tipo in self._botones_tecla:
+            bg_b, fg_b, act_b = estilos[tipo]
+            btn.configure(bg=bg_b, fg=fg_b, activebackground=act_b, activeforeground=fg_b)
+        self.barra_acciones.configure(bg=bg_eff)
+        self.btn_calcular.configure(bg=pal["exito"], fg=pal["texto_en_exito"], activebackground=pal["calc_act_exito"])
+        self.btn_enviar.configure(bg=pal["titulo"], fg=pal["texto_en_acento"], activebackground=acento_eff)
 
     def establecer_clipboard_bloqueado(self, bloqueado: bool) -> None:
         self.permitir_clipboard = not bloqueado
@@ -570,10 +603,12 @@ class CalculadoraCientifica(tk.Frame):
                 self.entry_expr.unbind(ev)
 
     def _alternar_angulo(self) -> None:
+        pal = obtener_paleta()
         self.modo_grados = not self.modo_grados
         self.btn_modo_ang.config(
             text="DEG" if self.modo_grados else "RAD",
-            bg=CORAL if self.modo_grados else DORADO,
+            bg=pal["alerta"] if self.modo_grados else pal["titulo"],
+            fg=pal["texto_en_acento"],
         )
         if self.entry_expr.get().strip():
             self.calcular()
@@ -592,26 +627,29 @@ class CalculadoraCientifica(tk.Frame):
         self.entry_expr.focus_set()
 
     def _limpiar_todo(self) -> None:
+        pal = obtener_paleta()
         self.entry_expr.delete(0, tk.END)
-        self.lbl_resultado.config(text="= 0", fg=ESMERALDA)
+        self.lbl_resultado.config(text="= 0", fg=pal["exito"])
         self.lbl_error.config(text="")
         self.ultimo_valor_str = ""
         self.entry_expr.focus_set()
 
     def limpiar(self) -> None:
+        pal = obtener_paleta()
         self.entry_expr.delete(0, tk.END)
         self.ans = 0.0
         self.ultimo_valor_str = ""
         self.lbl_ans.config(text="ANS = 0")
-        self.lbl_resultado.config(text="= 0", fg=ESMERALDA)
+        self.lbl_resultado.config(text="= 0", fg=pal["exito"])
         self.lbl_error.config(text="")
 
     def calcular(self):
+        pal = obtener_paleta()
         expr = self.entry_expr.get()
         try:
             res = evaluar_expresion_segura(expr, ans=self.ans, modo_grados=self.modo_grados)
         except Exception as exc:
-            self.lbl_resultado.config(text="= ERROR", fg=ROJO_OXIGENO)
+            self.lbl_resultado.config(text="= ERROR", fg=pal["peligro"])
             self.lbl_error.config(text=str(exc))
             return None
 
@@ -619,7 +657,7 @@ class CalculadoraCientifica(tk.Frame):
         txt = formatear_numero(res)
         self.ultimo_valor_str = txt
         self.lbl_ans.config(text=f"ANS = {txt}")
-        self.lbl_resultado.config(text=f"= {txt}", fg=ESMERALDA)
+        self.lbl_resultado.config(text=f"= {txt}", fg=pal["exito"])
         self.lbl_error.config(text="")
         return res
 

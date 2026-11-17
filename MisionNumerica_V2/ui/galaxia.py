@@ -2,17 +2,30 @@
 
 import random
 import tkinter as tk
-from .tema import FONDO_GALAXIA, DORADO, AMBAR, CORAL, VIOLETA_SUAVE
+from .tema import obtener_paleta
 
 
 class FondoGalaxia(tk.Canvas):
     def __init__(self, master, con_planetas: bool = False, **kwargs):
-        super().__init__(master, bg=FONDO_GALAXIA, highlightthickness=0, **kwargs)
+        pal = obtener_paleta()
+        kwargs.setdefault("bg", pal["fondo"])
+        super().__init__(master, highlightthickness=0, **kwargs)
         self.con_planetas = con_planetas
         self.estrellas = []
         self.nebulosas = []
         self._iniciado = False
         self.bind("<Configure>", self._al_redimensionar)
+
+    def aplicar_tema(self):
+        pal = obtener_paleta()
+        self.configure(bg=pal["fondo"])
+        self.estrellas.clear()
+        self.nebulosas.clear()
+        w = max(self.winfo_width(), 640)
+        h = max(self.winfo_height(), 480)
+        self._crear_cielo(w, h)
+        if self.con_planetas:
+            self._dibujar_planeta(w, h)
 
     def _al_redimensionar(self, event):
         if event.width < 100 or event.height < 100:
@@ -36,8 +49,9 @@ class FondoGalaxia(tk.Canvas):
 
     def _crear_cielo(self, w: int, h: int):
         self.delete("fondo")
+        pal = obtener_paleta()
         rng = random.Random(42)
-        colores_neb = ["#2A193D", "#331D38", "#2B1E3E", "#3B2135"]
+        colores_neb = list(pal["galaxia_neb"])
         for _ in range(7):
             cx = rng.randint(0, max(w, 800))
             cy = rng.randint(0, max(h, 600))
@@ -49,7 +63,7 @@ class FondoGalaxia(tk.Canvas):
             )
             self.nebulosas.append((nid, rng.uniform(0.15, 0.35)))
 
-        paleta_est = ["#FFF5E4", DORADO, AMBAR, CORAL, VIOLETA_SUAVE]
+        paleta_est = list(pal["galaxia_est"])
         for _ in range(95):
             x = rng.randint(0, max(w, 1280))
             y = rng.randint(0, max(h, 800))

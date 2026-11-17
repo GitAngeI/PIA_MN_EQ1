@@ -13,25 +13,14 @@ from .estrellas import EstrellasCanvas
 from .formulas_latex import LATEX_METODOS, renderizar_formula_tk
 from .guias_metodos import GUIAS_METODOS
 from .tema import (
-    AMBAR,
-    BORDE_CALIDO,
-    CORAL,
-    CREMA,
-    DORADO,
-    ESMERALDA,
     FONDO_GALAXIA,
     FUENTE_MONO,
     F_CUERPO,
     F_CUERPO_BOLD,
-    F_FORMULA,
-    F_SUBTITULO,
-    F_TABLA,
     F_TITULO,
-    GRIS_CALIDO,
-    PANEL_ELEVADO,
-    PANEL_OSCURO,
-    ROJO_OXIGENO,
+    alternar_tema_actual,
     crear_boton_3d,
+    obtener_paleta,
 )
 from .visor_grafica import VisorGraficaHUD
 
@@ -45,11 +34,15 @@ class ConsolaMision(tk.Frame):
         nombre_metodo: str,
         estado: EstadoJuego,
         al_volver: Callable[[], None],
+        al_cambiar_tema: Optional[Callable[[], None]] = None,
     ):
-        super().__init__(master, bg=FONDO_GALAXIA)
+        pal = obtener_paleta()
+        super().__init__(master, bg=pal["fondo"])
         self.nombre_metodo = nombre_metodo
         self.estado = estado
         self.al_volver = al_volver
+        self.al_cambiar_tema = al_cambiar_tema
+        self._feedback_clave = "texto_sec"
 
         self.mision: Dict[str, Any] = {}
         self.paso_idx = 0
@@ -110,15 +103,16 @@ class ConsolaMision(tk.Frame):
     # ------------------------------------------------------------------
 
     def _construir_ui(self) -> None:
-        self.top = tk.Frame(self, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=2)
+        pal = obtener_paleta()
+        self.top = tk.Frame(self, bg=pal["panel"], highlightbackground=pal["borde"], highlightthickness=2)
         self.top.pack(fill="x", padx=16, pady=(6, 4))
 
         self.btn_volver = tk.Button(
             self.top,
             text="VOLVER",
             command=self._salir,
-            bg=PANEL_ELEVADO,
-            fg=CREMA,
+            bg=pal["panel_elevado"],
+            fg=pal["texto"],
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
             padx=10,
@@ -130,8 +124,8 @@ class ConsolaMision(tk.Frame):
         self.lbl_titulo = tk.Label(
             self.top,
             text=self.nombre_metodo.upper(),
-            bg=PANEL_OSCURO,
-            fg=DORADO,
+            bg=pal["panel"],
+            fg=pal["titulo"],
             font=("Segoe UI", 12, "bold"),
         )
         self.lbl_titulo.pack(side="left", padx=(4, 8))
@@ -139,32 +133,48 @@ class ConsolaMision(tk.Frame):
         self.lbl_modo_badge = tk.Label(
             self.top,
             text="PRACTICA",
-            bg=ESMERALDA,
-            fg=FONDO_GALAXIA,
+            bg=pal["exito"],
+            fg=pal["texto_en_exito"],
             font=(FUENTE_MONO, 9, "bold"),
             padx=8,
             pady=2,
         )
         self.lbl_modo_badge.pack(side="left", padx=4)
 
-        self.lbl_record = tk.Label(self.top, text="", bg=PANEL_OSCURO, fg=ESMERALDA, font=(FUENTE_MONO, 9, "bold"))
-        self.lbl_record.pack(side="right", padx=(6, 12))
+        self.btn_tema = tk.Button(
+            self.top,
+            text=pal["btn_tema_txt"],
+            command=self._alternar_tema,
+            bg=pal["btn_tema_bg"],
+            fg=pal["btn_tema_fg"],
+            highlightbackground=pal["borde"],
+            highlightthickness=1,
+            font=(FUENTE_MONO, 8, "bold"),
+            bd=0,
+            padx=9,
+            pady=3,
+            cursor="hand2",
+        )
+        self.btn_tema.pack(side="right", padx=(4, 10), pady=4)
 
-        est_box = tk.Frame(self.top, bg=PANEL_OSCURO)
-        est_box.pack(side="right", padx=6)
-        self.visor_estrellas = EstrellasCanvas(est_box, valor=3.0, maximo=3, radio=9, espaciado=22, bg=PANEL_OSCURO)
+        self.lbl_record = tk.Label(self.top, text="", bg=pal["panel"], fg=pal["exito"], font=(FUENTE_MONO, 9, "bold"))
+        self.lbl_record.pack(side="right", padx=(6, 6))
+
+        self.est_box = tk.Frame(self.top, bg=pal["panel"])
+        self.est_box.pack(side="right", padx=6)
+        self.visor_estrellas = EstrellasCanvas(self.est_box, valor=3.0, maximo=3, radio=9, espaciado=22, bg=pal["panel"])
         self.visor_estrellas.pack(side="left")
         self.lbl_estrellas_intento = tk.Label(
-            est_box, text="3.0/3.0", bg=PANEL_OSCURO, fg=DORADO, font=(FUENTE_MONO, 9, "bold"), padx=4
+            self.est_box, text="3.0/3.0", bg=pal["panel"], fg=pal["titulo"], font=(FUENTE_MONO, 9, "bold"), padx=4
         )
         self.lbl_estrellas_intento.pack(side="left")
 
         # Barra de oxigeno (+ interruptor Sin Tiempo exclusivo de Revision Docente / Practica)
-        self.ox_frame = tk.Frame(self, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=1)
+        self.ox_frame = tk.Frame(self, bg=pal["panel"], highlightbackground=pal["borde"], highlightthickness=1)
         self.ox_frame.pack(fill="x", padx=16, pady=(0, 4))
 
         self.lbl_oxigeno = tk.Label(
-            self.ox_frame, text="OXIGENO: 360 s", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 9, "bold"), width=26, anchor="w"
+            self.ox_frame, text="OXIGENO: 360 s", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 9, "bold"), width=26, anchor="w"
         )
         self.lbl_oxigeno.pack(side="left", padx=10, pady=3)
 
@@ -172,8 +182,8 @@ class ConsolaMision(tk.Frame):
             self.ox_frame,
             text="MODO SIN TIEMPO: OFF",
             command=self._alternar_sin_tiempo,
-            bg=PANEL_ELEVADO,
-            fg=DORADO,
+            bg=pal["panel_elevado"],
+            fg=pal["titulo"],
             font=(FUENTE_MONO, 8, "bold"),
             bd=0,
             padx=9,
@@ -183,11 +193,11 @@ class ConsolaMision(tk.Frame):
         if not self.estado.es_modo_examen:
             self.btn_sin_tiempo.pack(side="right", padx=(6, 10), pady=2)
 
-        self.canvas_ox = tk.Canvas(self.ox_frame, height=14, bg="#100C1C", highlightthickness=0)
+        self.canvas_ox = tk.Canvas(self.ox_frame, height=14, bg=pal["superficie_barra"], highlightthickness=0)
         self.canvas_ox.pack(side="left", fill="x", expand=True, padx=(0, 8), pady=3)
 
         # Cuerpo principal: 2 columnas proporcionales en cualquier resolucion
-        self.cuerpo = tk.Frame(self, bg=FONDO_GALAXIA)
+        self.cuerpo = tk.Frame(self, bg=pal["fondo"])
         self.cuerpo.pack(fill="both", expand=True, padx=14, pady=(0, 6))
         self.cuerpo.columnconfigure(0, weight=54, uniform="col_mision")
         self.cuerpo.columnconfigure(1, weight=46, uniform="col_mision")
@@ -197,19 +207,20 @@ class ConsolaMision(tk.Frame):
         self._construir_panel_derecho()
 
     def _construir_panel_izquierdo(self) -> None:
-        self.izq = tk.Frame(self.cuerpo, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=2)
+        pal = obtener_paleta()
+        self.izq = tk.Frame(self.cuerpo, bg=pal["panel"], highlightbackground=pal["borde"], highlightthickness=2)
         self.izq.grid(row=0, column=0, sticky="nsew", padx=(0, 6))
 
-        meta_row = tk.Frame(self.izq, bg=PANEL_OSCURO)
-        meta_row.pack(fill="x", padx=12, pady=(8, 2))
-        self.lbl_escenario = tk.Label(meta_row, text="", bg=PANEL_OSCURO, fg=GRIS_CALIDO, font=("Segoe UI", 10, "bold"))
+        self.meta_row = tk.Frame(self.izq, bg=pal["panel"])
+        self.meta_row.pack(fill="x", padx=12, pady=(8, 2))
+        self.lbl_escenario = tk.Label(self.meta_row, text="", bg=pal["panel"], fg=pal["texto_sec"], font=("Segoe UI", 10, "bold"))
         self.lbl_escenario.pack(side="left")
 
         self.lbl_referencia = tk.Label(
             self.izq,
             text="",
-            bg=PANEL_OSCURO,
-            fg=GRIS_CALIDO,
+            bg=pal["panel"],
+            fg=pal["texto_sec"],
             font=(FUENTE_MONO, 10),
             anchor="w",
             wraplength=480,
@@ -218,18 +229,18 @@ class ConsolaMision(tk.Frame):
         self.lbl_referencia.pack(fill="x", padx=12, pady=(0, 4))
 
         self.lbl_sec_formula = tk.Label(
-            self.izq, text="FORMULA OFICIAL DEL METODO", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 10, "bold")
+            self.izq, text="FORMULA OFICIAL DEL METODO", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold")
         )
         self.lbl_sec_formula.pack(anchor="w", padx=12, pady=(2, 2))
 
-        self.frame_formula = tk.Frame(self.izq, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1)
+        self.frame_formula = tk.Frame(self.izq, bg=pal["superficie"], highlightbackground=pal["borde"], highlightthickness=1)
         self.frame_formula.pack(fill="x", padx=12, pady=(0, 8))
-        self.lbl_formula_img = tk.Label(self.frame_formula, bg="#120E20", padx=6, pady=4)
+        self.lbl_formula_img = tk.Label(self.frame_formula, bg=pal["superficie"], padx=6, pady=4)
         self.lbl_formula = tk.Label(
             self.frame_formula,
             text="",
-            bg="#120E20",
-            fg=DORADO,
+            bg=pal["superficie"],
+            fg=pal["titulo"],
             font=(FUENTE_MONO, 13, "bold"),
             wraplength=480,
             justify="left",
@@ -239,15 +250,15 @@ class ConsolaMision(tk.Frame):
 
         # Tarjeta destacada del enunciado con letra grande y legible
         self.card_enunciado = tk.Frame(
-            self.izq, bg="#16112B", highlightbackground=AMBAR, highlightthickness=1
+            self.izq, bg=pal["superficie_alt"], highlightbackground=pal["acento"], highlightthickness=1
         )
         self.card_enunciado.pack(fill="x", padx=12, pady=(0, 8))
 
         self.lbl_sec_prob = tk.Label(
             self.card_enunciado,
             text="PROBLEMA ACADEMICO PARAMETRIZADO",
-            bg="#16112B",
-            fg=AMBAR,
+            bg=pal["superficie_alt"],
+            fg=pal["acento"],
             font=(FUENTE_MONO, 10, "bold"),
         )
         self.lbl_sec_prob.pack(anchor="w", padx=10, pady=(6, 2))
@@ -255,8 +266,8 @@ class ConsolaMision(tk.Frame):
         self.lbl_enunciado = tk.Label(
             self.card_enunciado,
             text="",
-            bg="#16112B",
-            fg=CREMA,
+            bg=pal["superficie_alt"],
+            fg=pal["texto"],
             font=("Segoe UI", self._tam_enun),
             wraplength=480,
             justify="left",
@@ -265,10 +276,10 @@ class ConsolaMision(tk.Frame):
         self.lbl_enunciado.pack(fill="x", padx=10, pady=(0, 8))
 
         # Switcher de 3 sub-vistas en panel izquierdo (mas espacio vertical para tablas grandes)
-        tabs_izq = tk.Frame(self.izq, bg=PANEL_OSCURO)
-        tabs_izq.pack(fill="x", padx=12, pady=(0, 4))
+        self.tabs_izq = tk.Frame(self.izq, bg=pal["panel"])
+        self.tabs_izq.pack(fill="x", padx=12, pady=(0, 4))
         self.btn_tab_datos = tk.Button(
-            tabs_izq,
+            self.tabs_izq,
             text="DATOS DEL PROBLEMA",
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
@@ -281,7 +292,7 @@ class ConsolaMision(tk.Frame):
         self.btn_tab_tablas = self.btn_tab_datos
 
         self.btn_tab_prog = tk.Button(
-            tabs_izq,
+            self.tabs_izq,
             text="TABLA PROGRESIVA",
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
@@ -293,7 +304,7 @@ class ConsolaMision(tk.Frame):
         self.btn_tab_prog.pack(side="left", padx=(0, 5))
 
         self.btn_tab_grafica = tk.Button(
-            tabs_izq,
+            self.tabs_izq,
             text="GRAFICA REAL",
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
@@ -304,19 +315,19 @@ class ConsolaMision(tk.Frame):
         )
         self.btn_tab_grafica.pack(side="left")
 
-        self.cont_izq_sub = tk.Frame(self.izq, bg=PANEL_OSCURO)
+        self.cont_izq_sub = tk.Frame(self.izq, bg=pal["panel"])
         self.cont_izq_sub.pack(fill="both", expand=True, padx=12, pady=(0, 10))
 
         # Vista 1: Tabla de entrada amplia y con fuente grande
-        self.frame_datos = tk.Frame(self.cont_izq_sub, bg=PANEL_OSCURO)
-        tabla_wrap = tk.Frame(self.frame_datos, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1)
-        tabla_wrap.pack(fill="both", expand=True)
-        sc_t = tk.Scrollbar(tabla_wrap, orient="vertical")
-        sc_tx = tk.Scrollbar(tabla_wrap, orient="horizontal")
+        self.frame_datos = tk.Frame(self.cont_izq_sub, bg=pal["panel"])
+        self.tabla_wrap = tk.Frame(self.frame_datos, bg=pal["superficie"], highlightbackground=pal["borde"], highlightthickness=1)
+        self.tabla_wrap.pack(fill="both", expand=True)
+        sc_t = tk.Scrollbar(self.tabla_wrap, orient="vertical")
+        sc_tx = tk.Scrollbar(self.tabla_wrap, orient="horizontal")
         self.txt_tabla = tk.Text(
-            tabla_wrap,
-            bg="#120E20",
-            fg=CREMA,
+            self.tabla_wrap,
+            bg=pal["superficie"],
+            fg=pal["texto"],
             font=(FUENTE_MONO, self._tam_tabla),
             bd=0,
             padx=10,
@@ -335,25 +346,25 @@ class ConsolaMision(tk.Frame):
         self.txt_tabla.pack(side="left", fill="both", expand=True)
 
         # Vista 2: Tabla progresiva dedicada (iteraciones sin spoiler)
-        self.frame_progresiva = tk.Frame(self.cont_izq_sub, bg=PANEL_OSCURO)
+        self.frame_progresiva = tk.Frame(self.cont_izq_sub, bg=pal["panel"])
         self.lbl_prog_titulo = tk.Label(
             self.frame_progresiva,
             text="BITACORA PROGRESIVA DE ITERACIONES",
-            bg=PANEL_OSCURO,
-            fg=ESMERALDA,
+            bg=pal["panel"],
+            fg=pal["exito"],
             font=(FUENTE_MONO, 10, "bold"),
             anchor="w",
         )
         self.lbl_prog_titulo.pack(fill="x", pady=(0, 4))
 
-        prog_wrap = tk.Frame(self.frame_progresiva, bg="#100D1E", highlightbackground=BORDE_CALIDO, highlightthickness=1)
-        prog_wrap.pack(fill="both", expand=True)
-        sc_p = tk.Scrollbar(prog_wrap, orient="vertical")
-        sc_px = tk.Scrollbar(prog_wrap, orient="horizontal")
+        self.prog_wrap = tk.Frame(self.frame_progresiva, bg=pal["superficie_prog"], highlightbackground=pal["borde"], highlightthickness=1)
+        self.prog_wrap.pack(fill="both", expand=True)
+        sc_p = tk.Scrollbar(self.prog_wrap, orient="vertical")
+        sc_px = tk.Scrollbar(self.prog_wrap, orient="horizontal")
         self.txt_tabla_prog = tk.Text(
-            prog_wrap,
-            bg="#100D1E",
-            fg=DORADO,
+            self.prog_wrap,
+            bg=pal["superficie_prog"],
+            fg=pal["titulo"],
             font=(FUENTE_MONO, self._tam_tabla),
             bd=0,
             padx=10,
@@ -372,7 +383,7 @@ class ConsolaMision(tk.Frame):
         self.txt_tabla_prog.pack(side="left", fill="both", expand=True)
 
         # Vista 3: Grafica Analitica Real ampliada
-        self.frame_grafica = tk.Frame(self.cont_izq_sub, bg=PANEL_OSCURO)
+        self.frame_grafica = tk.Frame(self.cont_izq_sub, bg=pal["panel"])
         self.visor_grafica = VisorGraficaHUD(self.frame_grafica, height=260)
         self.visor_grafica.pack(fill="both", expand=True)
 
@@ -380,15 +391,16 @@ class ConsolaMision(tk.Frame):
         self._cambiar_tab_izq("datos")
 
     def _construir_panel_derecho(self) -> None:
-        self.der = tk.Frame(self.cuerpo, bg=PANEL_OSCURO, highlightbackground=BORDE_CALIDO, highlightthickness=2)
+        pal = obtener_paleta()
+        self.der = tk.Frame(self.cuerpo, bg=pal["panel"], highlightbackground=pal["borde"], highlightthickness=2)
         self.der.grid(row=0, column=1, sticky="nsew", padx=(6, 0))
 
-        self.canvas_der = tk.Canvas(self.der, bg=PANEL_OSCURO, highlightthickness=0)
+        self.canvas_der = tk.Canvas(self.der, bg=pal["panel"], highlightthickness=0)
         self.sc_der = tk.Scrollbar(self.der, orient="vertical", command=self.canvas_der.yview)
         self.canvas_der.configure(yscrollcommand=self.sc_der.set)
         self.canvas_der.pack(side="left", fill="both", expand=True)
 
-        self.der_contenido = tk.Frame(self.canvas_der, bg=PANEL_OSCURO)
+        self.der_contenido = tk.Frame(self.canvas_der, bg=pal["panel"])
         self._win_der_id = self.canvas_der.create_window((0, 0), window=self.der_contenido, anchor="nw")
 
         self.canvas_der.bind("<Configure>", self._programar_ajuste_der)
@@ -396,20 +408,20 @@ class ConsolaMision(tk.Frame):
         self.canvas_der.bind("<Enter>", lambda _e: self._activar_rueda_der(True))
         self.canvas_der.bind("<Leave>", lambda _e: self._activar_rueda_der(False))
 
-        self.canvas_pasos = tk.Canvas(self.der_contenido, height=34, bg=PANEL_OSCURO, highlightthickness=0)
+        self.canvas_pasos = tk.Canvas(self.der_contenido, height=34, bg=pal["panel"], highlightthickness=0)
         self.canvas_pasos.pack(fill="x", padx=14, pady=(8, 0))
         self.canvas_pasos.bind("<Configure>", lambda _e: self._al_redimensionar_pasos())
 
         self.lbl_progreso_paso = tk.Label(
-            self.der_contenido, text="PASO 1 DE 3", bg=PANEL_OSCURO, fg=ESMERALDA, font=(FUENTE_MONO, 10, "bold")
+            self.der_contenido, text="PASO 1 DE 3", bg=pal["panel"], fg=pal["exito"], font=(FUENTE_MONO, 10, "bold")
         )
         self.lbl_progreso_paso.pack(anchor="w", padx=14, pady=(2, 2))
 
         self.lbl_paso_titulo = tk.Label(
             self.der_contenido,
             text="",
-            bg=PANEL_OSCURO,
-            fg=DORADO,
+            bg=pal["panel"],
+            fg=pal["titulo"],
             font=("Segoe UI", self._tam_paso, "bold"),
             wraplength=440,
             justify="left",
@@ -419,8 +431,8 @@ class ConsolaMision(tk.Frame):
         self.lbl_pregunta = tk.Label(
             self.der_contenido,
             text="",
-            bg=PANEL_OSCURO,
-            fg=CREMA,
+            bg=pal["panel"],
+            fg=pal["texto"],
             font=("Segoe UI", self._tam_preg),
             wraplength=440,
             justify="left",
@@ -430,8 +442,8 @@ class ConsolaMision(tk.Frame):
         self.lbl_tooltip_input = tk.Label(
             self.der_contenido,
             text="",
-            bg=PANEL_OSCURO,
-            fg=GRIS_CALIDO,
+            bg=pal["panel"],
+            fg=pal["texto_sec"],
             font=("Segoe UI", 9, "italic"),
             wraplength=430,
             justify="left",
@@ -439,31 +451,33 @@ class ConsolaMision(tk.Frame):
         )
         self.lbl_tooltip_input.pack(fill="x", padx=14, pady=(0, 4))
 
-        self.zona_entrada = tk.Frame(self.der_contenido, bg=PANEL_OSCURO)
+        self.zona_entrada = tk.Frame(self.der_contenido, bg=pal["panel"])
         self.zona_entrada.pack(fill="x", padx=14, pady=(0, 8))
 
         self.entry_resp = tk.Entry(
             self.zona_entrada,
-            bg="#120E20",
-            fg=DORADO,
-            insertbackground=DORADO,
+            bg=pal["superficie"],
+            fg=pal["titulo"],
+            insertbackground=pal["titulo"],
+            highlightbackground=pal["borde"],
+            highlightthickness=1,
             font=("Consolas", 17, "bold"),
             relief="flat",
         )
         self.entry_resp.bind("<Return>", lambda _e: self._verificar_paso())
 
-        self.frame_opciones = tk.Frame(self.zona_entrada, bg=PANEL_OSCURO)
+        self.frame_opciones = tk.Frame(self.zona_entrada, bg=pal["panel"])
 
-        btn_row = tk.Frame(self.der_contenido, bg=PANEL_OSCURO)
-        btn_row.pack(fill="x", padx=12, pady=(0, 6))
+        self.btn_row = tk.Frame(self.der_contenido, bg=pal["panel"])
+        self.btn_row.pack(fill="x", padx=12, pady=(0, 6))
 
         self.btn_verificar = crear_boton_3d(
-            btn_row,
+            self.btn_row,
             "VERIFICAR",
             self._verificar_paso,
-            bg=AMBAR,
-            fg="#160F24",
-            sombra="#8C4E22",
+            bg=pal["acento"],
+            fg=pal["texto_en_acento"],
+            sombra=pal["sombra_acento"],
             fuente=(FUENTE_MONO, 10, "bold"),
             padx=10,
             pady=5,
@@ -471,11 +485,11 @@ class ConsolaMision(tk.Frame):
         self.btn_verificar.pack(side="left", padx=(0, 5))
 
         self.btn_toggle_calc = tk.Button(
-            btn_row,
+            self.btn_row,
             text="OCULTAR CALC",
             command=self._alternar_calculadora,
-            bg=PANEL_ELEVADO,
-            fg=DORADO,
+            bg=pal["panel_elevado"],
+            fg=pal["titulo"],
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
             padx=7,
@@ -485,13 +499,13 @@ class ConsolaMision(tk.Frame):
         self.btn_toggle_calc.pack(side="left", padx=(0, 5))
 
         self.btn_guia = tk.Button(
-            btn_row,
+            self.btn_row,
             text="? GUIA",
             command=self._abrir_modal_guia,
-            bg="#262044",
-            fg=DORADO,
+            bg=pal["btn_guia_bg"],
+            fg=pal["btn_guia_fg"],
             font=(FUENTE_MONO, 9, "bold"),
-            highlightbackground=DORADO,
+            highlightbackground=pal["titulo"],
             highlightthickness=1,
             bd=0,
             padx=8,
@@ -501,12 +515,12 @@ class ConsolaMision(tk.Frame):
         self.btn_guia.pack(side="left", padx=(0, 5))
 
         self.btn_nuevos_datos = crear_boton_3d(
-            btn_row,
+            self.btn_row,
             "NUEVOS DATOS",
             lambda: self.nueva_mision_aleatoria(permitir_en_examen=False),
-            bg=PANEL_ELEVADO,
-            fg=CREMA,
-            sombra="#120E20",
+            bg=pal["panel_elevado"],
+            fg=pal["texto"],
+            sombra=pal["sombra_panel"],
             fuente=(FUENTE_MONO, 9, "bold"),
             padx=7,
             pady=5,
@@ -517,12 +531,15 @@ class ConsolaMision(tk.Frame):
         self._vincular_tooltip(self.btn_guia, lambda: "Abre el formulario oficial completo y resumen de 3 pasos del metodo.")
         self._vincular_tooltip(self.btn_toggle_calc, lambda: "Muestra u oculta la calculadora cientifica integrada.")
         self._vincular_tooltip(self.btn_sin_tiempo, lambda: "Pausa/activa el temporizador libremente en revision docente (desactivado en Examen).")
+        self._vincular_tooltip(self.btn_tema, lambda: "Alterna entre tema oscuro espacial y tema claro (blanco/gris suave).")
 
         self.lbl_feedback = tk.Label(
             self.der_contenido,
             text="",
-            bg="#120E20",
-            fg=GRIS_CALIDO,
+            bg=pal["superficie"],
+            fg=pal["texto_sec"],
+            highlightbackground=pal["borde"],
+            highlightthickness=1,
             font=("Segoe UI", 10, "bold"),
             wraplength=420,
             justify="left",
@@ -536,8 +553,8 @@ class ConsolaMision(tk.Frame):
         self.calculadora = CalculadoraCientifica(
             self.der_contenido,
             al_enviar_resultado=self._recibir_de_calculadora,
-            bg="#161129",
-            acento=AMBAR,
+            bg=pal["calc_bg"],
+            acento=pal["acento"],
             permitir_clipboard=not self.estado.es_modo_examen,
         )
         self.calculadora.pack(fill="both", expand=True, padx=12, pady=(0, 8))
@@ -706,23 +723,24 @@ class ConsolaMision(tk.Frame):
         if tab == "tablas":
             tab = "datos"
         self._tab_izq_actual = tab
+        pal = obtener_paleta()
         self.frame_datos.pack_forget()
         self.frame_progresiva.pack_forget()
         self.frame_grafica.pack_forget()
 
-        self.btn_tab_datos.config(bg=PANEL_ELEVADO, fg=CREMA)
-        self.btn_tab_prog.config(bg=PANEL_ELEVADO, fg=CREMA)
-        self.btn_tab_grafica.config(bg=PANEL_ELEVADO, fg=CREMA)
+        self.btn_tab_datos.config(bg=pal["panel_elevado"], fg=pal["texto"])
+        self.btn_tab_prog.config(bg=pal["panel_elevado"], fg=pal["texto"])
+        self.btn_tab_grafica.config(bg=pal["panel_elevado"], fg=pal["texto"])
 
         if tab == "datos":
             self.frame_datos.pack(fill="both", expand=True)
-            self.btn_tab_datos.config(bg=DORADO, fg=FONDO_GALAXIA)
+            self.btn_tab_datos.config(bg=pal["titulo"], fg=pal["texto_en_acento"])
         elif tab == "progresiva":
             self.frame_progresiva.pack(fill="both", expand=True)
-            self.btn_tab_prog.config(bg=DORADO, fg=FONDO_GALAXIA)
+            self.btn_tab_prog.config(bg=pal["titulo"], fg=pal["texto_en_acento"])
         else:
             self.frame_grafica.pack(fill="both", expand=True)
-            self.btn_tab_grafica.config(bg=DORADO, fg=FONDO_GALAXIA)
+            self.btn_tab_grafica.config(bg=pal["titulo"], fg=pal["texto_en_acento"])
             if self.mision:
                 esc = obtener_escenario(self.mision.get("sala_id", 1))
                 self.visor_grafica.actualizar(
@@ -742,6 +760,11 @@ class ConsolaMision(tk.Frame):
             self.btn_toggle_calc.config(text="MOSTRAR CALC")
         self._programar_scroll_der()
 
+    def _set_feedback(self, texto: str, clave_color: str = "texto_sec") -> None:
+        pal = obtener_paleta()
+        self._feedback_clave = clave_color
+        self.lbl_feedback.config(text=texto, bg=pal["superficie"], fg=pal.get(clave_color, pal["texto_sec"]))
+
     def _recibir_de_calculadora(self, texto_val: str) -> None:
         pasos = self.mision.get("pasos", [])
         if self.paso_idx >= len(pasos) or pasos[self.paso_idx].get("tipo") != "numero":
@@ -749,7 +772,110 @@ class ConsolaMision(tk.Frame):
         self.entry_resp.delete(0, tk.END)
         self.entry_resp.insert(0, texto_val)
         self.entry_resp.focus_set()
-        self.lbl_feedback.config(text=f"Valor {texto_val} transferido desde calculadora.", fg=ESMERALDA)
+        self._set_feedback(f"Valor {texto_val} transferido desde calculadora.", "exito")
+
+    def _alternar_tema(self) -> None:
+        nuevo = alternar_tema_actual()
+        self.estado.establecer_tema_visual(nuevo)
+        self.aplicar_tema()
+        if self.al_cambiar_tema is not None:
+            try:
+                self.al_cambiar_tema()
+            except Exception:
+                pass
+
+    def aplicar_tema(self) -> None:
+        pal = obtener_paleta()
+        esc = obtener_escenario(self.mision.get("sala_id", 1)) if self.mision else obtener_escenario(1)
+
+        self.top.configure(bg=pal["panel"], highlightbackground=pal["borde"])
+        self.btn_volver.configure(bg=pal["panel_elevado"], fg=pal["texto"])
+        self.lbl_titulo.configure(bg=pal["panel"], fg=pal["titulo"])
+        self.btn_tema.configure(
+            text=pal["btn_tema_txt"],
+            bg=pal["btn_tema_bg"],
+            fg=pal["btn_tema_fg"],
+            highlightbackground=pal["borde"],
+        )
+        self.lbl_record.configure(bg=pal["panel"], fg=pal["exito"])
+        self.est_box.configure(bg=pal["panel"])
+        self.visor_estrellas.aplicar_tema(pal["panel"])
+        self._actualizar_indicador_estrellas()
+
+        self.ox_frame.configure(bg=pal["panel"], highlightbackground=pal["borde"])
+        self.lbl_oxigeno.configure(bg=pal["panel"])
+        self.canvas_ox.configure(bg=pal["superficie_barra"])
+        self._actualizar_boton_sin_tiempo()
+        self._refrescar_oxigeno_ui()
+
+        self.meta_row.configure(bg=esc["panel"])
+        self.frame_formula.configure(bg=pal["superficie"], highlightbackground=pal["borde"])
+        self.lbl_formula_img.configure(bg=pal["superficie"])
+        self.lbl_formula.configure(bg=pal["superficie"], fg=pal["titulo"])
+
+        self.card_enunciado.configure(bg=pal["superficie_alt"], highlightbackground=esc["acento"])
+        self.lbl_sec_prob.configure(bg=pal["superficie_alt"], fg=esc["acento"])
+        self.lbl_enunciado.configure(bg=pal["superficie_alt"], fg=pal["texto"])
+
+        self.tabs_izq.configure(bg=esc["panel"])
+        self.tabla_wrap.configure(bg=pal["superficie"], highlightbackground=pal["borde"])
+        self.txt_tabla.configure(bg=pal["superficie"], fg=pal["texto"])
+        self.prog_wrap.configure(bg=pal["superficie_prog"], highlightbackground=pal["borde"])
+        self.txt_tabla_prog.configure(bg=pal["superficie_prog"], fg=pal["titulo"])
+
+        self.entry_resp.configure(
+            bg=pal["superficie"],
+            fg=pal["titulo"],
+            insertbackground=pal["titulo"],
+            highlightbackground=pal["borde"],
+        )
+        for hijo in self.frame_opciones.winfo_children():
+            if isinstance(hijo, tk.Radiobutton):
+                hijo.configure(
+                    bg=esc["panel"],
+                    fg=pal["texto"],
+                    selectcolor=pal["borde"],
+                    activebackground=esc["panel"],
+                    activeforeground=pal["titulo"],
+                )
+
+        self.btn_row.configure(bg=esc["panel"])
+        self.btn_verificar.actualizar_colores(pal["acento"], pal["texto_en_acento"], pal["sombra_acento"])
+        self.btn_toggle_calc.configure(bg=pal["panel_elevado"], fg=pal["titulo"])
+        self.btn_guia.configure(bg=pal["btn_guia_bg"], fg=pal["btn_guia_fg"], highlightbackground=pal["titulo"])
+        self.btn_nuevos_datos.actualizar_colores(pal["panel_elevado"], pal["texto"], pal["sombra_panel"])
+
+        self.lbl_feedback.configure(
+            bg=pal["superficie"],
+            fg=pal.get(self._feedback_clave, pal["texto_sec"]),
+            highlightbackground=pal["borde"],
+        )
+
+        self.aplicar_tema_calculadora(pal, esc)
+        self._aplicar_colores_escenario(esc)
+        self._actualizar_badge_modo()
+        self._cambiar_tab_izq(self._tab_izq_actual)
+        self._refrescar_formula_imagen()
+        self._al_redimensionar_pasos()
+        if self.mision:
+            self.visor_grafica.actualizar(
+                self.mision,
+                esc["acento"],
+                paso_idx=self.paso_idx,
+                completado=(not self.activo and self.paso_idx >= len(self.mision.get("pasos", []))),
+            )
+
+    def aplicar_tema_calculadora(self, pal: Dict[str, Any], esc: Dict[str, Any]) -> None:
+        self.calculadora.aplicar_tema(bg=pal["calc_bg"], acento=esc["acento"])
+
+    def _actualizar_badge_modo(self) -> None:
+        pal = obtener_paleta()
+        if self.estado.es_modo_examen:
+            self.lbl_modo_badge.config(text="MODO EXAMEN", bg=pal["peligro"], fg=pal["texto_en_peligro"])
+            self.btn_nuevos_datos.boton.config(state="disabled", text="BLOQUEADO EXAMEN")
+        else:
+            self.lbl_modo_badge.config(text="MODO PRACTICA", bg=pal["exito"], fg=pal["texto_en_exito"])
+            self.btn_nuevos_datos.boton.config(state="normal", text="NUEVOS DATOS")
 
     # ------------------------------------------------------------------
     # MODO REVISION SIN TIEMPO, TOOLTIPS EMBEBIDOS Y MODAL ? GUIA
@@ -772,6 +898,7 @@ class ConsolaMision(tk.Frame):
         self._refrescar_oxigeno_ui()
 
     def _actualizar_boton_sin_tiempo(self) -> None:
+        pal = obtener_paleta()
         if self.estado.es_modo_examen:
             if self.btn_sin_tiempo.winfo_ismapped():
                 self.btn_sin_tiempo.pack_forget()
@@ -779,9 +906,9 @@ class ConsolaMision(tk.Frame):
         if not self.btn_sin_tiempo.winfo_ismapped():
             self.btn_sin_tiempo.pack(side="right", padx=(6, 10), pady=2)
         if self._esta_sin_tiempo():
-            self.btn_sin_tiempo.config(text="SIN TIEMPO: ON", bg=ESMERALDA, fg=FONDO_GALAXIA)
+            self.btn_sin_tiempo.config(text="SIN TIEMPO: ON", bg=pal["exito"], fg=pal["texto_en_exito"])
         else:
-            self.btn_sin_tiempo.config(text="MODO SIN TIEMPO: OFF", bg=PANEL_ELEVADO, fg=DORADO)
+            self.btn_sin_tiempo.config(text="MODO SIN TIEMPO: OFF", bg=pal["panel_elevado"], fg=pal["titulo"])
 
     def _texto_tooltip_paso(self) -> str:
         pasos = self.mision.get("pasos", [])
@@ -813,12 +940,13 @@ class ConsolaMision(tk.Frame):
         except tk.TclError:
             return
         self._ocultar_tooltip()
+        pal = obtener_paleta()
         lbl = tk.Label(
             self,
             text=texto,
-            bg="#0D0A1A",
-            fg=DORADO,
-            highlightbackground=AMBAR,
+            bg=pal["tooltip_bg"],
+            fg=pal["tooltip_fg"],
+            highlightbackground=pal["acento"],
             highlightthickness=1,
             font=("Segoe UI", 9, "bold"),
             wraplength=340,
@@ -858,25 +986,26 @@ class ConsolaMision(tk.Frame):
         guia = GUIAS_METODOS.get(self.nombre_metodo)
         if not guia:
             return
+        pal = obtener_paleta()
         esc = obtener_escenario(self.mision.get("sala_id", 1))
         acento = esc["acento"]
 
-        ov = tk.Frame(self, bg="#0B0816")
+        ov = tk.Frame(self, bg=pal["overlay"])
         ov.place(relx=0, rely=0, relwidth=1, relheight=1)
         self._guia_overlay = ov
 
         ancho_modal = min(760, max(540, self.winfo_width() - 80))
         alto_modal = min(600, max(440, self.winfo_height() - 60))
-        card = tk.Frame(ov, bg=PANEL_OSCURO, highlightbackground=acento, highlightthickness=3)
+        card = tk.Frame(ov, bg=pal["panel"], highlightbackground=acento, highlightthickness=3)
         card.place(relx=0.5, rely=0.5, anchor="center", width=ancho_modal, height=alto_modal)
 
-        hdr = tk.Frame(card, bg="#16112B")
+        hdr = tk.Frame(card, bg=pal["superficie_alt"])
         hdr.pack(fill="x")
         tk.Label(
             hdr,
             text=f"FORMULARIO Y GUIA OFICIAL // {self.nombre_metodo.upper()}",
-            bg="#16112B",
-            fg=DORADO,
+            bg=pal["superficie_alt"],
+            fg=pal["titulo"],
             font=("Segoe UI", 13, "bold"),
             anchor="w",
         ).pack(side="left", padx=14, pady=10)
@@ -884,8 +1013,8 @@ class ConsolaMision(tk.Frame):
             hdr,
             text="CERRAR [X]",
             command=self._cerrar_modal_guia,
-            bg=AMBAR,
-            fg=FONDO_GALAXIA,
+            bg=pal["acento"],
+            fg=pal["texto_en_acento"],
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
             padx=12,
@@ -893,15 +1022,15 @@ class ConsolaMision(tk.Frame):
             cursor="hand2",
         ).pack(side="right", padx=12, pady=8)
 
-        body_host = tk.Frame(card, bg=PANEL_OSCURO)
+        body_host = tk.Frame(card, bg=pal["panel"])
         body_host.pack(fill="both", expand=True, padx=10, pady=(4, 10))
         sc_g = tk.Scrollbar(body_host, orient="vertical")
-        can_g = tk.Canvas(body_host, bg=PANEL_OSCURO, highlightthickness=0, yscrollcommand=sc_g.set)
+        can_g = tk.Canvas(body_host, bg=pal["panel"], highlightthickness=0, yscrollcommand=sc_g.set)
         sc_g.config(command=can_g.yview)
         sc_g.pack(side="right", fill="y")
         can_g.pack(side="left", fill="both", expand=True)
 
-        inner_g = tk.Frame(can_g, bg=PANEL_OSCURO, padx=10, pady=8)
+        inner_g = tk.Frame(can_g, bg=pal["panel"], padx=10, pady=8)
         win_g = can_g.create_window((0, 0), window=inner_g, anchor="nw")
         can_g.bind("<Configure>", lambda e: can_g.itemconfigure(win_g, width=max(320, e.width - 4)))
         inner_g.bind("<Configure>", lambda _e: can_g.configure(scrollregion=can_g.bbox("all")))
@@ -910,7 +1039,7 @@ class ConsolaMision(tk.Frame):
 
         wrap_txt = ancho_modal - 70
         tk.Label(
-            inner_g, text=f"Fuente de clase: {guia['fuente']}", bg=PANEL_OSCURO, fg=GRIS_CALIDO,
+            inner_g, text=f"Fuente de clase: {guia['fuente']}", bg=pal["panel"], fg=pal["texto_sec"],
             font=(FUENTE_MONO, 9, "bold"), anchor="w", wraplength=wrap_txt, justify="left",
         ).pack(fill="x", pady=(0, 6))
 
@@ -918,35 +1047,35 @@ class ConsolaMision(tk.Frame):
         foto = renderizar_formula_tk(latex, color_texto=acento, tamano_pt=14, max_ancho=wrap_txt) if latex else None
         if foto is not None:
             self._foto_guia = foto
-            fr_ltx = tk.Frame(inner_g, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1)
+            fr_ltx = tk.Frame(inner_g, bg=pal["superficie"], highlightbackground=pal["borde"], highlightthickness=1)
             fr_ltx.pack(fill="x", pady=(0, 8))
-            tk.Label(fr_ltx, image=foto, bg="#120E20", padx=8, pady=6).pack(anchor="w")
+            tk.Label(fr_ltx, image=foto, bg=pal["superficie"], padx=8, pady=6).pack(anchor="w")
 
-        tk.Label(inner_g, text="ECUACIONES COMPLETAS DEL METODO", bg=PANEL_OSCURO, fg=AMBAR, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        tk.Label(inner_g, text="ECUACIONES COMPLETAS DEL METODO", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
         tk.Label(
-            inner_g, text=guia["ecuaciones"], bg="#120E20", fg=DORADO,
+            inner_g, text=guia["ecuaciones"], bg=pal["superficie"], fg=pal["titulo"],
             font=(FUENTE_MONO, 10), justify="left", anchor="w", padx=10, pady=8, wraplength=wrap_txt,
         ).pack(fill="x", pady=(2, 8))
 
-        tk.Label(inner_g, text="VARIABLES SOLICITADAS", bg=PANEL_OSCURO, fg=ESMERALDA, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        tk.Label(inner_g, text="VARIABLES SOLICITADAS", bg=pal["panel"], fg=pal["exito"], font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
         tk.Label(
-            inner_g, text=guia["variables"], bg="#16112B", fg=CREMA,
+            inner_g, text=guia["variables"], bg=pal["superficie_alt"], fg=pal["texto"],
             font=("Segoe UI", 10), justify="left", anchor="w", padx=10, pady=6, wraplength=wrap_txt,
         ).pack(fill="x", pady=(2, 8))
 
-        tk.Label(inner_g, text="RESUMEN EN 3 PASOS PARA RESOLVERLO", bg=PANEL_OSCURO, fg=acento, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
-        pasos_box = tk.Frame(inner_g, bg="#120E20", highlightbackground=BORDE_CALIDO, highlightthickness=1, padx=10, pady=6)
+        tk.Label(inner_g, text="RESUMEN EN 3 PASOS PARA RESOLVERLO", bg=pal["panel"], fg=acento, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        pasos_box = tk.Frame(inner_g, bg=pal["superficie"], highlightbackground=pal["borde"], highlightthickness=1, padx=10, pady=6)
         pasos_box.pack(fill="x", pady=(2, 8))
         for p_txt in guia["pasos_guia"]:
             tk.Label(
-                pasos_box, text=p_txt, bg="#120E20", fg=CREMA,
+                pasos_box, text=p_txt, bg=pal["superficie"], fg=pal["texto"],
                 font=("Segoe UI", 10), justify="left", anchor="w", wraplength=wrap_txt - 16,
             ).pack(fill="x", pady=2)
 
         if guia.get("tabla_extra"):
-            tk.Label(inner_g, text="TABLA OFICIAL DE CONSTANTES", bg=PANEL_OSCURO, fg=DORADO, font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+            tk.Label(inner_g, text="TABLA OFICIAL DE CONSTANTES", bg=pal["panel"], fg=pal["titulo"], font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
             tk.Label(
-                inner_g, text=guia["tabla_extra"], bg="#100C1C", fg=CREMA,
+                inner_g, text=guia["tabla_extra"], bg=pal["superficie_prog"], fg=pal["texto"],
                 font=(FUENTE_MONO, 9), justify="left", anchor="w", padx=10, pady=6,
             ).pack(fill="x", pady=(2, 6))
 
@@ -958,14 +1087,12 @@ class ConsolaMision(tk.Frame):
         es_ex = self.estado.es_modo_examen
         if es_ex:
             self.estado.establecer_sin_limite_tiempo(False)
-            self.lbl_modo_badge.config(text="MODO EXAMEN", bg=ROJO_OXIGENO, fg=CREMA)
-            self.btn_nuevos_datos.boton.config(state="disabled", text="BLOQUEADO EXAMEN")
+            self._actualizar_badge_modo()
             self.calculadora.establecer_clipboard_bloqueado(True)
             self._aplicar_bloqueo_portapapeles(True)
             self._activar_detector_foco()
         else:
-            self.lbl_modo_badge.config(text="MODO PRACTICA", bg=ESMERALDA, fg=FONDO_GALAXIA)
-            self.btn_nuevos_datos.boton.config(state="normal", text="NUEVOS DATOS")
+            self._actualizar_badge_modo()
             self.calculadora.establecer_clipboard_bloqueado(False)
             self._aplicar_bloqueo_portapapeles(False)
             self._desactivar_detector_foco()
@@ -1036,24 +1163,25 @@ class ConsolaMision(tk.Frame):
     def _mostrar_cortina_privacidad(self, titulo: str, mensaje: str, bloqueada_con_reset: bool) -> None:
         if not self.winfo_exists():
             return
+        pal = obtener_paleta()
         if self._cortina_overlay is None or not self._cortina_overlay.winfo_exists():
-            ov = tk.Frame(self, bg="#090611")
+            ov = tk.Frame(self, bg=pal["overlay_foco"])
             ov.place(relx=0, rely=0, relwidth=1, relheight=1)
-            card = tk.Frame(ov, bg=PANEL_OSCURO, highlightbackground=ROJO_OXIGENO, highlightthickness=3, padx=32, pady=24)
+            card = tk.Frame(ov, bg=pal["panel"], highlightbackground=pal["peligro"], highlightthickness=3, padx=32, pady=24)
             card.place(relx=0.5, rely=0.5, anchor="center", width=560)
-            self._lbl_cortina_titulo = tk.Label(card, text="", bg=PANEL_OSCURO, fg=ROJO_OXIGENO, font=F_TITULO)
+            self._lbl_cortina_titulo = tk.Label(card, text="", bg=pal["panel"], fg=pal["peligro"], font=F_TITULO)
             self._lbl_cortina_titulo.pack(pady=(0, 10))
             self._lbl_cortina_msg = tk.Label(
-                card, text="", bg=PANEL_OSCURO, fg=CREMA, font=F_CUERPO, wraplength=490, justify="center"
+                card, text="", bg=pal["panel"], fg=pal["texto"], font=F_CUERPO, wraplength=490, justify="center"
             )
             self._lbl_cortina_msg.pack(pady=(0, 16))
             self._btn_cortina_accion = crear_boton_3d(
                 card,
                 "GENERAR NUEVO EJERCICIO Y REANUDAR",
                 self._reiniciar_por_incidente_foco,
-                bg=ROJO_OXIGENO,
-                fg=CREMA,
-                sombra="#5A1525",
+                bg=pal["peligro"],
+                fg=pal["texto_en_peligro"],
+                sombra=pal["sombra_peligro"],
                 fuente=F_CUERPO_BOLD,
                 padx=18,
                 pady=10,
@@ -1192,9 +1320,9 @@ class ConsolaMision(tk.Frame):
                 paso=self.paso_idx,
             )
             self._ocultar_cortina_privacidad()
-            self.lbl_feedback.config(
-                text=f"Aviso: Micro-pausa del sistema detectada ({self._micro_pausas_intento}/2). Mantente en el examen.",
-                fg=DORADO,
+            self._set_feedback(
+                f"Aviso: Micro-pausa del sistema detectada ({self._micro_pausas_intento}/2). Mantente en el examen.",
+                "titulo",
             )
         else:
             self._confirmar_incidente_foco("salida_prolongada", "SALIDA PROLONGADA DE LA APLICACION")
@@ -1273,15 +1401,16 @@ class ConsolaMision(tk.Frame):
 
     def _mostrar_modal_hud(self, titulo: str, mensaje: str, acento: str, texto_boton: str, comando: Callable[[], None]) -> None:
         self._cerrar_modal_hud()
-        overlay = tk.Frame(self, bg="#0D0A18")
+        pal = obtener_paleta()
+        overlay = tk.Frame(self, bg=pal["overlay_hud"])
         overlay.place(relx=0, rely=0, relwidth=1, relheight=1)
         self._modal_overlay = overlay
 
-        card = tk.Frame(overlay, bg=PANEL_OSCURO, highlightbackground=acento, highlightthickness=3, padx=32, pady=24)
+        card = tk.Frame(overlay, bg=pal["panel"], highlightbackground=acento, highlightthickness=3, padx=32, pady=24)
         card.place(relx=0.5, rely=0.5, anchor="center", width=560)
 
-        tk.Label(card, text=titulo.upper(), bg=PANEL_OSCURO, fg=acento, font=F_TITULO).pack(pady=(0, 10))
-        tk.Label(card, text=mensaje, bg=PANEL_OSCURO, fg=CREMA, font=F_CUERPO, wraplength=480, justify="center").pack(pady=(0, 18))
+        tk.Label(card, text=titulo.upper(), bg=pal["panel"], fg=acento, font=F_TITULO).pack(pady=(0, 10))
+        tk.Label(card, text=mensaje, bg=pal["panel"], fg=pal["texto"], font=F_CUERPO, wraplength=480, justify="center").pack(pady=(0, 18))
 
         def _accion():
             self._cerrar_modal_hud()
@@ -1289,14 +1418,15 @@ class ConsolaMision(tk.Frame):
                 comando()
 
         btn = crear_boton_3d(
-            card, texto_boton, _accion, bg=acento, fg="#160F24", sombra="#2D1E42", fuente=F_CUERPO_BOLD, padx=24, pady=9
+            card, texto_boton, _accion, bg=acento, fg=pal["texto_en_acento"], sombra=pal["sombra_modal"], fuente=F_CUERPO_BOLD, padx=24, pady=9
         )
         btn.pack()
         btn.boton.focus_set()
 
     def _aplicar_colores_escenario(self, esc: Dict[str, Any]) -> None:
+        pal = obtener_paleta()
         fondo = esc["fondo"]
-        panel = esc.get("panel", PANEL_OSCURO)
+        panel = esc.get("panel", pal["panel"])
         acento = esc["acento"]
         self.configure(bg=fondo)
         self.cuerpo.configure(bg=fondo)
@@ -1311,6 +1441,9 @@ class ConsolaMision(tk.Frame):
         self.frame_progresiva.configure(bg=panel)
         self.frame_grafica.configure(bg=panel)
         self.cont_izq_sub.configure(bg=panel)
+        self.meta_row.configure(bg=panel)
+        self.tabs_izq.configure(bg=panel)
+        self.btn_row.configure(bg=panel)
         self.card_enunciado.configure(highlightbackground=acento)
         for lbl in (
             self.lbl_escenario,
@@ -1323,6 +1456,13 @@ class ConsolaMision(tk.Frame):
             self.lbl_tooltip_input,
         ):
             lbl.configure(bg=panel)
+        self.lbl_referencia.configure(fg=pal["texto_sec"])
+        self.lbl_sec_formula.configure(fg=pal["acento"])
+        self.lbl_prog_titulo.configure(fg=pal["exito"])
+        self.lbl_progreso_paso.configure(fg=pal["exito"])
+        self.lbl_paso_titulo.configure(fg=pal["titulo"])
+        self.lbl_pregunta.configure(fg=pal["texto"])
+        self.lbl_tooltip_input.configure(fg=pal["texto_sec"])
         self.lbl_sec_prob.configure(fg=acento)
         self.lbl_escenario.config(text=f"ESCENARIO: {esc['nombre'].upper()}", fg=acento)
 
@@ -1371,16 +1511,17 @@ class ConsolaMision(tk.Frame):
         self._mostrar_tabla_progresiva()
         self.visor_grafica.actualizar(self.mision, esc["acento"], paso_idx=0, completado=False)
         self._mostrar_paso_actual()
-        self.lbl_feedback.config(text="Calcula el paso actual y verificalo antes de agotar el oxigeno.", fg=GRIS_CALIDO)
+        self._set_feedback("Calcula el paso actual y verificalo antes de agotar el oxigeno.", "texto_sec")
         self._refrescar_oxigeno_ui()
         self._configurar_seguridad_modo()
         self._tick_oxigeno()
 
     def _actualizar_indicador_estrellas(self) -> None:
+        pal = obtener_paleta()
         est = calcular_estrellas(self.errores_intento)
-        col = ESMERALDA if est >= 2.5 else (DORADO if est >= 1.5 else CORAL)
+        col = pal["exito"] if est >= 2.5 else (pal["titulo"] if est >= 1.5 else pal["alerta"])
         self.visor_estrellas.actualizar(est)
-        self.lbl_estrellas_intento.config(text=f"{est:.1f}/3.0", fg=col)
+        self.lbl_estrellas_intento.config(text=f"{est:.1f}/3.0", bg=pal["panel"], fg=col)
 
     def _mostrar_tabla(self) -> None:
         encabezados, filas = self.mision["datos_tabla"]
@@ -1433,6 +1574,7 @@ class ConsolaMision(tk.Frame):
             self._dibujar_indicador_pasos(total)
 
     def _dibujar_indicador_pasos(self, total: int) -> None:
+        pal = obtener_paleta()
         self.canvas_pasos.delete("all")
         w = max(self.canvas_pasos.winfo_width(), 320)
         espacio = (w - 40) / max(1, total - 1) if total > 1 else 0
@@ -1440,18 +1582,19 @@ class ConsolaMision(tk.Frame):
             x = 20 + i * espacio if total > 1 else w / 2
             if i < total - 1:
                 x_sig = 20 + (i + 1) * espacio
-                col_l = ESMERALDA if i < self.paso_idx else BORDE_CALIDO
+                col_l = pal["exito"] if i < self.paso_idx else pal["borde"]
                 self.canvas_pasos.create_line(x, 17, x_sig, 17, fill=col_l, width=3)
             if i < self.paso_idx:
-                col_c, txt_c = ESMERALDA, FONDO_GALAXIA
+                col_c, txt_c = pal["exito"], pal["texto_en_exito"]
             elif i == self.paso_idx:
-                col_c, txt_c = DORADO, FONDO_GALAXIA
+                col_c, txt_c = pal["titulo"], pal["texto_en_acento"]
             else:
-                col_c, txt_c = PANEL_ELEVADO, GRIS_CALIDO
+                col_c, txt_c = pal["panel_elevado"], pal["texto_sec"]
             self.canvas_pasos.create_oval(x - 11, 6, x + 11, 28, fill=col_c, outline="")
             self.canvas_pasos.create_text(x, 17, text=str(i + 1), fill=txt_c, font=("Consolas", 9, "bold"))
 
     def _mostrar_paso_actual(self) -> None:
+        pal = obtener_paleta()
         pasos = self.mision["pasos"]
         paso = pasos[self.paso_idx]
         self._dibujar_indicador_pasos(len(pasos))
@@ -1482,10 +1625,10 @@ class ConsolaMision(tk.Frame):
                     variable=self.opcion_var,
                     value=idx,
                     bg=panel,
-                    fg=CREMA,
-                    selectcolor=BORDE_CALIDO,
+                    fg=pal["texto"],
+                    selectcolor=pal["borde"],
                     activebackground=panel,
-                    activeforeground=DORADO,
+                    activeforeground=pal["titulo"],
                     font=("Segoe UI", self._tam_opc),
                     wraplength=wrap_op,
                     justify="left",
@@ -1520,16 +1663,16 @@ class ConsolaMision(tk.Frame):
                 try:
                     val = float(raw)
                 except ValueError:
-                    self.lbl_feedback.config(text="Ingresa un numero valido (ejemplo: 1.4142).", fg=CORAL)
+                    self._set_feedback("Ingresa un numero valido (ejemplo: 1.4142).", "alerta")
                     return
                 if not math.isfinite(val):
-                    self.lbl_feedback.config(text="Ingresa un numero real finito (no NaN o Infinito).", fg=CORAL)
+                    self._set_feedback("Ingresa un numero real finito (no NaN o Infinito).", "alerta")
                     return
                 correcto = self.es_respuesta_numerica_valida(val, paso["esperado"], paso["tolerancia"])
             else:
                 sel = self.opcion_var.get()
                 if sel == -1:
-                    self.lbl_feedback.config(text="Selecciona una opcion antes de verificar.", fg=CORAL)
+                    self._set_feedback("Selecciona una opcion antes de verificar.", "alerta")
                     return
                 correcto = sel == paso["indice_correcto"]
 
@@ -1551,14 +1694,15 @@ class ConsolaMision(tk.Frame):
                         msg_err = "INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pistas deshabilitadas en Modo Examen."
                     else:
                         msg_err = f"INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pista: {paso['pista']}"
-                self.lbl_feedback.config(text=msg_err, fg=CORAL)
+                self._set_feedback(msg_err, "alerta")
                 return
 
             self.paso_idx += 1
             if self.paso_idx < len(pasos):
-                self.lbl_feedback.config(text="Paso correcto. Avanza al siguiente calculo.", fg=ESMERALDA)
+                self._set_feedback("Paso correcto. Avanza al siguiente calculo.", "exito")
                 self._mostrar_paso_actual()
             else:
+                pal = obtener_paleta()
                 self.activo = False
                 self._cancelar_timer()
                 self._desactivar_detector_foco()
@@ -1583,7 +1727,7 @@ class ConsolaMision(tk.Frame):
                         f"Calificacion: {est_ganadas:.1f} / 3.0 estrellas.\n"
                         f"Seed auditado: {self.mision.get('seed_id', '-')}\n{msg_rec}"
                     ),
-                    ESMERALDA,
+                    pal["exito"],
                     "VOLVER A LA SALA >",
                     self.al_volver,
                 )
@@ -1591,27 +1735,29 @@ class ConsolaMision(tk.Frame):
             self._verificando = False
 
     def _refrescar_oxigeno_ui(self) -> None:
+        pal = obtener_paleta()
         if self._esta_sin_tiempo():
-            self.lbl_oxigeno.config(text="OXIGENO: LIBRE [DOCENTE]", fg=ESMERALDA)
+            self.lbl_oxigeno.config(text="OXIGENO: LIBRE [DOCENTE]", fg=pal["exito"])
             self._dibujar_barra_oxigeno(1.0)
             return
-        color = ROJO_OXIGENO if self.oxigeno_restante <= 25 else AMBAR
+        color = pal["peligro"] if self.oxigeno_restante <= 25 else pal["acento"]
         suf = " [EXAM]" if self.estado.es_modo_examen else ""
         self.lbl_oxigeno.config(text=f"OXIGENO: {int(math.ceil(self.oxigeno_restante))} s{suf}", fg=color)
         self._dibujar_barra_oxigeno(self.oxigeno_restante / max(self.oxigeno_total, 1))
 
     def _manejar_sin_oxigeno(self) -> None:
+        pal = obtener_paleta()
         self.oxigeno_restante = 0.0
         self.activo = False
         self._cancelar_timer()
         self._desactivar_detector_foco()
         self._dibujar_barra_oxigeno(0.0)
-        self.lbl_oxigeno.config(text="OXIGENO: 0 s", fg=ROJO_OXIGENO)
+        self.lbl_oxigeno.config(text="OXIGENO: 0 s", fg=pal["peligro"])
         plantilla_prev = self.mision.get("plantilla_id")
         self._mostrar_modal_hud(
             "Oxigeno Agotado",
             "Se agoto el suministro de oxigeno.\nSe generara un nuevo problema del banco academico para este metodo.",
-            CORAL,
+            pal["alerta"],
             "REINTENTAR MODULO >",
             lambda: self.nueva_mision_aleatoria(permitir_en_examen=True, excluir_plantilla_id=plantilla_prev),
         )
@@ -1632,9 +1778,10 @@ class ConsolaMision(tk.Frame):
         self._after_id = self.after(200, self._tick_oxigeno)
 
     def _dibujar_barra_oxigeno(self, fraccion: float) -> None:
+        pal = obtener_paleta()
         w = max(self.canvas_ox.winfo_width(), 200)
         self.canvas_ox.delete("all")
-        color = ROJO_OXIGENO if fraccion <= 0.2 else (DORADO if fraccion <= 0.5 else ESMERALDA)
+        color = pal["peligro"] if fraccion <= 0.2 else (pal["titulo"] if fraccion <= 0.5 else pal["exito"])
         self.canvas_ox.create_rectangle(0, 0, w * max(0.0, min(1.0, fraccion)), 16, fill=color, outline="")
 
     def _salir(self) -> None:

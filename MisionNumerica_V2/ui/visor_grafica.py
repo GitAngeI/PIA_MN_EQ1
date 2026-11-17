@@ -2,9 +2,9 @@
 
 import math
 import tkinter as tk
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
-from .tema import AMBAR, CORAL, CREMA, DORADO, ESMERALDA, FONDO_GALAXIA, GRIS_CALIDO
+from .tema import obtener_paleta
 
 
 def _ticks_bonitos(vmin: float, vmax: float, max_ticks: int = 5) -> Tuple[float, float, List[float]]:
@@ -56,13 +56,14 @@ class VisorGraficaHUD(tk.Canvas):
     """Canvas analitico con ejes reales graduados y revelacion progresiva sin spoilers."""
 
     def __init__(self, master, **kwargs):
-        kwargs.setdefault("bg", "#0F0B1B")
+        pal = obtener_paleta()
+        kwargs.setdefault("bg", pal["visor_bg"])
         kwargs.setdefault("height", 220)
-        kwargs.setdefault("highlightbackground", "#3B2E58")
+        kwargs.setdefault("highlightbackground", pal["visor_borde"])
         kwargs.setdefault("highlightthickness", 1)
         super().__init__(master, **kwargs)
         self._mision: Dict[str, Any] = {}
-        self._acento = DORADO
+        self._acento = pal["titulo"]
         self._paso_idx = 0
         self._completado = False
         self.bind("<Configure>", lambda _e: self._redibujar())
@@ -74,10 +75,18 @@ class VisorGraficaHUD(tk.Canvas):
         paso_idx: int = 0,
         completado: bool = False,
     ) -> None:
+        pal = obtener_paleta()
         self._mision = mision or {}
-        self._acento = acento or DORADO
+        self._acento = acento or pal["titulo"]
         self._paso_idx = int(paso_idx)
         self._completado = bool(completado)
+        self._redibujar()
+
+    def aplicar_tema(self, acento: Optional[str] = None) -> None:
+        pal = obtener_paleta()
+        self.configure(bg=pal["visor_bg"], highlightbackground=pal["visor_borde"])
+        if acento:
+            self._acento = acento
         self._redibujar()
 
     def _extraer_puntos_fallback(self) -> List[Tuple[float, float]]:
@@ -101,6 +110,8 @@ class VisorGraficaHUD(tk.Canvas):
 
     def _redibujar(self) -> None:
         self.delete("all")
+        pal = obtener_paleta()
+        self.configure(bg=pal["visor_bg"], highlightbackground=pal["visor_borde"])
         w = max(self.winfo_width(), 380)
         h = max(self.winfo_height(), 190)
 
@@ -112,7 +123,7 @@ class VisorGraficaHUD(tk.Canvas):
         self.create_text(
             14, 13, anchor="w",
             text=titulo,
-            fill=GRIS_CALIDO,
+            fill=pal["texto_sec"],
             font=("Consolas", 9, "bold"),
         )
 
@@ -175,11 +186,11 @@ class VisorGraficaHUD(tk.Canvas):
             todos_pts.append((xv, fv))
 
         if not todos_pts:
-            self.create_rectangle(pad_izq, pad_sup, w - pad_der, h - pad_inf, outline="#3B2E58")
+            self.create_rectangle(pad_izq, pad_sup, w - pad_der, h - pad_inf, outline=pal["visor_borde"])
             self.create_text(
                 pad_izq + plot_w / 2, pad_sup + plot_h / 2,
                 text="Completa los pasos de verificacion para trazar la curva.",
-                fill=GRIS_CALIDO, font=("Consolas", 10),
+                fill=pal["texto_sec"], font=("Consolas", 10),
             )
             return
 
@@ -207,25 +218,25 @@ class VisorGraficaHUD(tk.Canvas):
         for xt in xticks:
             px, _ = a_px(xt, ymin)
             if pad_izq - 1 <= px <= w - pad_der + 1:
-                self.create_line(px, pad_sup, px, pad_sup + plot_h, fill="#1B1530")
-                self.create_line(px, pad_sup + plot_h, px, pad_sup + plot_h + 4, fill="#6C5B99")
-                self.create_text(px, pad_sup + plot_h + 13, text=_fmt_tick(xt), fill=GRIS_CALIDO, font=("Consolas", 8))
+                self.create_line(px, pad_sup, px, pad_sup + plot_h, fill=pal["visor_grid"])
+                self.create_line(px, pad_sup + plot_h, px, pad_sup + plot_h + 4, fill=pal["visor_tick"])
+                self.create_text(px, pad_sup + plot_h + 13, text=_fmt_tick(xt), fill=pal["texto_sec"], font=("Consolas", 8))
 
         for yt in yticks:
             _, py = a_px(xmin, yt)
             if pad_sup - 1 <= py <= pad_sup + plot_h + 1:
-                self.create_line(pad_izq, py, w - pad_der, py, fill="#1B1530")
-                self.create_line(pad_izq - 4, py, pad_izq, py, fill="#6C5B99")
-                self.create_text(pad_izq - 7, py, text=_fmt_tick(yt), anchor="e", fill=GRIS_CALIDO, font=("Consolas", 8))
+                self.create_line(pad_izq, py, w - pad_der, py, fill=pal["visor_grid"])
+                self.create_line(pad_izq - 4, py, pad_izq, py, fill=pal["visor_tick"])
+                self.create_text(pad_izq - 7, py, text=_fmt_tick(yt), anchor="e", fill=pal["texto_sec"], font=("Consolas", 8))
 
         # Marco de ejes y lineas y=0 / x=0 punteadas
-        self.create_rectangle(pad_izq, pad_sup, w - pad_der, pad_sup + plot_h, outline="#584780", width=1)
+        self.create_rectangle(pad_izq, pad_sup, w - pad_der, pad_sup + plot_h, outline=pal["visor_marco"], width=1)
         if ymin <= 0.0 <= ymax:
             _, y0_px = a_px(xmin, 0.0)
-            self.create_line(pad_izq, y0_px, w - pad_der, y0_px, fill="#7E6BB3", width=1, dash=(4, 3))
+            self.create_line(pad_izq, y0_px, w - pad_der, y0_px, fill=pal["visor_eje"], width=1, dash=(4, 3))
         if xmin <= 0.0 <= xmax:
             x0_px, _ = a_px(0.0, ymin)
-            self.create_line(x0_px, pad_sup, x0_px, pad_sup + plot_h, fill="#7E6BB3", width=1, dash=(4, 3))
+            self.create_line(x0_px, pad_sup, x0_px, pad_sup + plot_h, fill=pal["visor_eje"], width=1, dash=(4, 3))
 
         # Sombreado progresivo de trapecios / franjas en Integracion (Sala 5)
         if area_cfg and len(xs_area) >= 2 and paso_ef >= 1:
@@ -236,10 +247,10 @@ class VisorGraficaHUD(tk.Canvas):
                 p2 = a_px(x1, f1)
                 p3 = a_px(x2, f2)
                 p4 = a_px(x2, 0.0)
-                fill_trap = "#1C4D3E" if (self._completado or paso_ef >= 2) else "#282046"
+                fill_trap = pal["visor_trap_fill"] if (self._completado or paso_ef >= 2) else pal["visor_trap_wait"]
                 self.create_polygon(
                     p1[0], p1[1], p2[0], p2[1], p3[0], p3[1], p4[0], p4[1],
-                    fill=fill_trap, outline="#4DA688", width=1, stipple="gray25",
+                    fill=fill_trap, outline=pal["visor_trap_borde"], width=1, stipple="gray25",
                 )
 
         # Curva base f(x) o trayectoria EDO revelada
@@ -256,19 +267,21 @@ class VisorGraficaHUD(tk.Canvas):
             for vx, vy in modelo_pts:
                 px, py = a_px(vx, vy)
                 coords_m.extend([px, py])
-            self.create_line(*coords_m, fill=DORADO, width=2, dash=(6, 3))
+            self.create_line(*coords_m, fill=pal["titulo"], width=2, dash=(6, 3))
 
         # Puntos de entrada de tabla
         for vx, vy in puntos_datos:
             px, py = a_px(vx, vy)
-            self.create_oval(px - 4, py - 4, px + 4, py + 4, fill=ESMERALDA, outline=CREMA, width=1)
+            self.create_oval(px - 4, py - 4, px + 4, py + 4, fill=pal["exito"], outline=pal["texto"], width=1)
 
         # Marcadores progresivos desbloqueados
         for idx, mk in enumerate(marcadores_visibles):
             vx, vy = float(mk["x"]), float(mk["y"])
             px, py = a_px(vx, vy)
-            col = mk.get("color", DORADO)
-            self.create_oval(px - 5, py - 5, px + 5, py + 5, fill=col, outline=FONDO_GALAXIA, width=1)
+            col = pal["titulo"] if pal["nombre"] == "claro" else mk.get("color", pal["titulo"])
+            if pal["nombre"] == "claro" and idx % 2 == 0:
+                col = pal["acento"]
+            self.create_oval(px - 5, py - 5, px + 5, py + 5, fill=col, outline=pal["fondo"], width=1)
             et = str(mk.get("etiqueta", ""))
             if et:
                 dy = -12 if py > pad_sup + 24 else 12
@@ -277,8 +290,8 @@ class VisorGraficaHUD(tk.Canvas):
         # Etiquetas de ejes
         xlabel = str(grafica.get("xlabel", "x"))
         ylabel = str(grafica.get("ylabel", "y"))
-        self.create_text(w - pad_der, pad_sup + plot_h + 24, anchor="e", text=xlabel, fill=AMBAR, font=("Consolas", 8, "bold"))
-        self.create_text(pad_izq + 4, pad_sup + 8, anchor="w", text=ylabel, fill=AMBAR, font=("Consolas", 8, "bold"))
+        self.create_text(w - pad_der, pad_sup + plot_h + 24, anchor="e", text=xlabel, fill=pal["acento"], font=("Consolas", 8, "bold"))
+        self.create_text(pad_izq + 4, pad_sup + 8, anchor="w", text=ylabel, fill=pal["acento"], font=("Consolas", 8, "bold"))
 
     def _dibujar_sistema(
         self,
@@ -293,18 +306,19 @@ class VisorGraficaHUD(tk.Canvas):
         plot_h: int,
         paso_ef: int,
     ) -> None:
+        pal = obtener_paleta()
         barras = grafica.get("barras") or {}
         paso_min = int(barras.get("paso_min", 2))
         etiquetas = barras.get("etiquetas") or []
         valores = [float(v) for v in (barras.get("valores") or [])]
 
-        self.create_rectangle(pad_izq, pad_sup, w - pad_der, pad_sup + plot_h, outline="#584780", width=1)
+        self.create_rectangle(pad_izq, pad_sup, w - pad_der, pad_sup + plot_h, outline=pal["visor_marco"], width=1)
         if paso_ef < paso_min or not etiquetas or not valores:
             self.create_text(
                 pad_izq + plot_w / 2,
                 pad_sup + plot_h / 2,
                 text="GRAFICA DE INCOGNITAS EN ESPERA\nCompleta el Paso 2 para revelar magnitudes x1, x2, x3",
-                fill=GRIS_CALIDO,
+                fill=pal["texto_sec"],
                 font=("Consolas", 9),
                 justify=tk.CENTER,
             )
@@ -318,11 +332,11 @@ class VisorGraficaHUD(tk.Canvas):
 
         for yt in yticks:
             py = y_px(yt)
-            self.create_line(pad_izq, py, w - pad_der, py, fill="#1B1530")
-            self.create_text(pad_izq - 7, py, text=_fmt_tick(yt), anchor="e", fill=GRIS_CALIDO, font=("Consolas", 8))
+            self.create_line(pad_izq, py, w - pad_der, py, fill=pal["visor_grid"])
+            self.create_text(pad_izq - 7, py, text=_fmt_tick(yt), anchor="e", fill=pal["texto_sec"], font=("Consolas", 8))
 
         y0 = y_px(0.0)
-        self.create_line(pad_izq, y0, w - pad_der, y0, fill="#8D79C7", width=1, dash=(4, 3))
+        self.create_line(pad_izq, y0, w - pad_der, y0, fill=pal["visor_eje_sys"], width=1, dash=(4, 3))
 
         n = len(etiquetas)
         ancho_slot = plot_w / max(1, n)
@@ -331,11 +345,11 @@ class VisorGraficaHUD(tk.Canvas):
             cx = pad_izq + (i + 0.5) * ancho_slot
             yb = y_px(val)
             top, bot = min(y0, yb), max(y0, yb)
-            col = ESMERALDA if val >= 0 else CORAL
+            col = pal["exito"] if val >= 0 else pal["alerta"]
             self.create_rectangle(
                 cx - ancho_barra / 2, top, cx + ancho_barra / 2, bot,
-                fill=col, outline=CREMA, width=1,
+                fill=col, outline=pal["texto"], width=1,
             )
-            self.create_text(cx, pad_sup + plot_h + 14, text=str(et), fill=CREMA, font=("Consolas", 9, "bold"))
+            self.create_text(cx, pad_sup + plot_h + 14, text=str(et), fill=pal["texto"], font=("Consolas", 9, "bold"))
             dy_val = -10 if val >= 0 else 10
-            self.create_text(cx, yb + dy_val, text=_fmt_tick(val), fill=DORADO, font=("Consolas", 8, "bold"))
+            self.create_text(cx, yb + dy_val, text=_fmt_tick(val), fill=pal["titulo"], font=("Consolas", 8, "bold"))

@@ -9,19 +9,10 @@ from ..juego.estado import EstadoJuego
 from .astronauta_sprite import generar_frames_astronauta
 from .estrellas import dibujar_estrella_canvas
 from .tema import (
-    AMBAR,
-    BORDE_CALIDO,
-    CORAL,
-    CREMA,
-    DORADO,
-    ESMERALDA,
-    FONDO_GALAXIA,
     FUENTE_MONO,
     FUENTE_UI,
-    GRIS_CALIDO,
-    PANEL_OSCURO,
-    SALAS,
-    VIOLETA_SUAVE,
+    obtener_paleta,
+    obtener_salas,
 )
 
 # Coordenadas normalizadas (cx, cy, rw, rh) dentro del plano vector 16:9 de la Nave Aurora
@@ -70,7 +61,8 @@ class MapaNaveAurora(tk.Canvas):
         al_cambiar_sala: Optional[Callable[[int], None]] = None,
         **kwargs,
     ):
-        kwargs.setdefault("bg", "#090714")
+        pal = obtener_paleta()
+        kwargs.setdefault("bg", pal["mapa_bg"])
         kwargs.setdefault("highlightthickness", 0)
         super().__init__(master, **kwargs)
         self.estado = estado
@@ -90,14 +82,14 @@ class MapaNaveAurora(tk.Canvas):
         self._tick_fx = 0
         self._ultimo_tamano: Tuple[int, int] = (0, 0)
 
-        # Estrellas de fondo deterministas (normalizadas 0..1)
+        # Estrellas/nodos de fondo deterministas (normalizadas 0..1)
         rng = random.Random(42)
-        self._estrellas_bg: List[Tuple[float, float, float, str]] = [
+        self._estrellas_bg: List[Tuple[float, float, float, int]] = [
             (
                 rng.random(),
                 rng.random(),
                 rng.choice([1.0, 1.3, 1.8, 2.3]),
-                rng.choice(["#FFFFFF", "#E9DFFF", "#FFE5B4", "#B8F2FF", "#9F8EC2"]),
+                rng.randrange(5),
             )
             for _ in range(95)
         ]
@@ -184,11 +176,18 @@ class MapaNaveAurora(tk.Canvas):
         hx, hy = rw * bw, rh * bh
         return cx, cy, cx - hx, cy - hy, cx + hx, cy + hy
 
+    def aplicar_tema(self):
+        pal = obtener_paleta()
+        self.configure(bg=pal["mapa_bg"])
+        self._redibujar()
+
     def _redibujar(self):
         w = self.winfo_width()
         h = self.winfo_height()
         if w < 60 or h < 60:
             return
+        pal = obtener_paleta()
+        self.configure(bg=pal["mapa_bg"])
         self.delete("all")
 
         ox, oy, bw, bh = self._caja_nave()
@@ -211,20 +210,24 @@ class MapaNaveAurora(tk.Canvas):
         self._dibujar_ingeniero(self.px, self.py)
 
     def _dibujar_espacio(self, w: int, h: int):
+        pal = obtener_paleta()
+        est_pal = pal["mapa_estrellas"]
         # Halos sutiles de nebulosa
         self.create_oval(
             w * 0.06, h * 0.08, w * 0.55, h * 0.72,
-            fill="#141028", outline="", tags="ship_static",
+            fill=pal["mapa_neb1"], outline="", tags="ship_static",
         )
         self.create_oval(
             w * 0.48, h * 0.25, w * 0.96, h * 0.94,
-            fill="#11162B", outline="", tags="ship_static",
+            fill=pal["mapa_neb2"], outline="", tags="ship_static",
         )
-        for sx, sy, sr, col in self._estrellas_bg:
+        for sx, sy, sr, col_idx in self._estrellas_bg:
             x, y = sx * w, sy * h
+            col = est_pal[col_idx % len(est_pal)] if isinstance(col_idx, int) else col_idx
             self.create_oval(x - sr, y - sr, x + sr, y + sr, fill=col, outline="", tags="ship_static")
 
     def _dibujar_casco_nave(self, ox: float, oy: float, bw: float, bh: float):
+        pal = obtener_paleta()
         # Aletas estabilizadoras superior e inferior
         aleta_sup = [
             (0.28, 0.12), (0.37, 0.03), (0.60, 0.03), (0.66, 0.11),
@@ -234,17 +237,17 @@ class MapaNaveAurora(tk.Canvas):
         ]
         self.create_polygon(
             *self._poly(aleta_sup, ox, oy, bw, bh),
-            fill="#241C3D", outline=BORDE_CALIDO, width=2, tags="ship_static",
+            fill=pal["mapa_aleta"], outline=pal["borde"], width=2, tags="ship_static",
         )
         self.create_polygon(
             *self._poly(aleta_inf, ox, oy, bw, bh),
-            fill="#241C3D", outline=BORDE_CALIDO, width=2, tags="ship_static",
+            fill=pal["mapa_aleta"], outline=pal["borde"], width=2, tags="ship_static",
         )
         # Luces de navegación en puntas de ala (rojo babor / esmeralda estribor)
         lx1, ly1 = self._pt(0.375, 0.035, ox, oy, bw, bh)
         lx2, ly2 = self._pt(0.375, 0.965, ox, oy, bw, bh)
-        self.create_oval(lx1 - 4, ly1 - 4, lx1 + 4, ly1 + 4, fill=CORAL, outline="", tags="ship_static")
-        self.create_oval(lx2 - 4, ly2 - 4, lx2 + 4, ly2 + 4, fill=ESMERALDA, outline="", tags="ship_static")
+        self.create_oval(lx1 - 4, ly1 - 4, lx1 + 4, ly1 + 4, fill=pal["alerta"], outline="", tags="ship_static")
+        self.create_oval(lx2 - 4, ly2 - 4, lx2 + 4, ly2 + 4, fill=pal["exito"], outline="", tags="ship_static")
 
         # Silueta principal del casco exterior de la Nave Aurora
         casco_ext = [
@@ -266,7 +269,7 @@ class MapaNaveAurora(tk.Canvas):
         ]
         self.create_polygon(
             *self._poly(casco_ext, ox, oy, bw, bh),
-            smooth=True, fill="#2A2246", outline="#735E9E", width=3, tags="ship_static",
+            smooth=True, fill=pal["mapa_casco_fill"], outline=pal["mapa_casco_borde"], width=3, tags="ship_static",
         )
 
         # Cubierta interior presurizada (zona de trabajo)
@@ -289,7 +292,7 @@ class MapaNaveAurora(tk.Canvas):
         ]
         self.create_polygon(
             *self._poly(casco_int, ox, oy, bw, bh),
-            smooth=True, fill="#17122B", outline=BORDE_CALIDO, width=2, tags="ship_static",
+            smooth=True, fill=pal["mapa_cubierta_fill"], outline=pal["borde"], width=2, tags="ship_static",
         )
 
         # Rejilla metálica sutil dentro del piso de la cubierta
@@ -297,12 +300,12 @@ class MapaNaveAurora(tk.Canvas):
             gx = 0.14 + i * 0.056
             x0, y0 = self._pt(gx, 0.17, ox, oy, bw, bh)
             x1, y1 = self._pt(gx, 0.83, ox, oy, bw, bh)
-            self.create_line(x0, y0, x1, y1, fill="#201938", width=1, tags="ship_static")
+            self.create_line(x0, y0, x1, y1, fill=pal["mapa_rejilla"], width=1, tags="ship_static")
         for j in range(1, 7):
             gy = 0.16 + j * 0.11
             x0, y0 = self._pt(0.16, gy, ox, oy, bw, bh)
             x1, y1 = self._pt(0.89, gy, ox, oy, bw, bh)
-            self.create_line(x0, y0, x1, y1, fill="#201938", width=1, tags="ship_static")
+            self.create_line(x0, y0, x1, y1, fill=pal["mapa_rejilla"], width=1, tags="ship_static")
 
         # Bloque de proa / cúpula de observación
         visera = [
@@ -310,7 +313,7 @@ class MapaNaveAurora(tk.Canvas):
         ]
         self.create_polygon(
             *self._poly(visera, ox, oy, bw, bh),
-            smooth=True, fill="#4EE2EC", outline="#B5FCFF", width=1, tags="ship_static",
+            smooth=True, fill=pal["mapa_visera_fill"], outline=pal["mapa_visera_borde"], width=1, tags="ship_static",
         )
 
         # 3 toberas metálicas traseras en popa (izquierda)
@@ -319,16 +322,17 @@ class MapaNaveAurora(tk.Canvas):
             nx1, ny1 = self._pt(0.116, ty + 0.068, ox, oy, bw, bh)
             self.create_rectangle(
                 nx0, ny0, nx1, ny1,
-                fill="#2E264C", outline="#8672B2", width=2, tags="ship_static",
+                fill=pal["mapa_tobera_fill"], outline=pal["mapa_tobera_borde"], width=2, tags="ship_static",
             )
             rx0, ry0 = self._pt(0.054, ty - 0.052, ox, oy, bw, bh)
             rx1, ry1 = self._pt(0.068, ty + 0.052, ox, oy, bw, bh)
             self.create_oval(
                 rx0, ry0, rx1, ry1,
-                fill="#63F2EC", outline="#D6FFFF", width=1, tags="ship_static",
+                fill=pal["mapa_tobera_core"], outline=pal["mapa_tobera_core_borde"], width=1, tags="ship_static",
             )
 
     def _dibujar_pasillos(self, ox: float, oy: float, bw: float, bh: float):
+        pal = obtener_paleta()
         ancho_ext = max(10, int(min(bw, bh) * 0.036))
         ancho_int = max(6, int(ancho_ext * 0.62))
         ancho_luz = max(2, int(ancho_ext * 0.14))
@@ -336,11 +340,11 @@ class MapaNaveAurora(tk.Canvas):
         for a, b in PASILLOS_NAVE:
             ax, ay = self._pt(SALAS_LAYOUT[a][0], SALAS_LAYOUT[a][1], ox, oy, bw, bh)
             bx, by = self._pt(SALAS_LAYOUT[b][0], SALAS_LAYOUT[b][1], ox, oy, bw, bh)
-            self.create_line(ax, ay, bx, by, fill="#4A3B70", width=ancho_ext, capstyle="round", tags="ship_static")
-            self.create_line(ax, ay, bx, by, fill="#241D3D", width=ancho_int, capstyle="round", tags="ship_static")
+            self.create_line(ax, ay, bx, by, fill=pal["mapa_pasillo_ext"], width=ancho_ext, capstyle="round", tags="ship_static")
+            self.create_line(ax, ay, bx, by, fill=pal["mapa_pasillo_int"], width=ancho_int, capstyle="round", tags="ship_static")
             self.create_line(
                 ax, ay, bx, by,
-                fill="#6C5A99", width=ancho_luz, dash=(8, 8), capstyle="round", tags="ship_static",
+                fill=pal["mapa_pasillo_luz"], width=ancho_luz, dash=(8, 8), capstyle="round", tags="ship_static",
             )
 
     def _dibujar_efectos_animados(self, ox: float, oy: float, bw: float, bh: float):
@@ -348,6 +352,7 @@ class MapaNaveAurora(tk.Canvas):
         self.delete("fx_anim")
         if bw <= 0 or bh <= 0:
             return
+        pal = obtener_paleta()
         pulso = 0.015 * math.sin(self._tick_fx * 0.35)
         for idx, ty in enumerate((0.295, 0.500, 0.705)):
             largo = 0.068 + (0.012 if idx == 1 else 0.0) + pulso * (1.2 if idx % 2 == 0 else -1.0)
@@ -363,11 +368,11 @@ class MapaNaveAurora(tk.Canvas):
             ]
             self.create_polygon(
                 *self._poly(cola_ext, ox, oy, bw, bh),
-                smooth=True, fill="#2AB7CA", outline="", tags="fx_anim",
+                smooth=True, fill=pal["mapa_llama_ext"], outline="", tags="fx_anim",
             )
             self.create_polygon(
                 *self._poly(cola_int, ox, oy, bw, bh),
-                smooth=True, fill="#B9FFF8", outline="", tags="fx_anim",
+                smooth=True, fill=pal["mapa_llama_int"], outline="", tags="fx_anim",
             )
 
         # Rayo sutil rotatorio en sala 6 (Telemetría) si existe en canvas
@@ -376,7 +381,7 @@ class MapaNaveAurora(tk.Canvas):
         ang = (self._tick_fx * 0.14) % (2 * math.pi)
         rx = cx6 + radio_radar * math.cos(ang)
         ry = cy6 + radio_radar * math.sin(ang)
-        self.create_line(cx6, cy6, rx, ry, fill="#FF7B89", width=2, tags="fx_anim")
+        self.create_line(cx6, cy6, rx, ry, fill=pal["salas_acento"][6], width=2, tags="fx_anim")
 
         # Mantener orden de capas limpio: espacio/casco/pasillos -> fx -> salas/estrellas -> ingeniero
         try:
@@ -391,6 +396,7 @@ class MapaNaveAurora(tk.Canvas):
         self, sid: int, x0: float, y0: float, x1: float, y1: float, acento: str, completa: bool
     ):
         """Dibuja detalle esquemático de ingeniería dentro de cada módulo."""
+        pal = obtener_paleta()
         w_box = x1 - x0
         h_box = y1 - y0
         cx = (x0 + x1) / 2.0
@@ -401,26 +407,26 @@ class MapaNaveAurora(tk.Canvas):
             r = dim * 0.34
             self.create_arc(
                 cx - r, cy - r * 0.7, cx + r, cy + r * 0.7,
-                start=-75, extent=150, style="arc", outline="#4CE8E0", width=max(2, int(dim * 0.045)),
+                start=-75, extent=150, style="arc", outline=pal["mapa_interior_1_arc"], width=max(2, int(dim * 0.045)),
                 tags="sala_layer",
             )
             self.create_oval(
                 cx - r * 0.28, cy - r * 0.22, cx + r * 0.28, cy + r * 0.22,
-                fill="#1E3654", outline=acento, width=2, tags="sala_layer",
+                fill=pal["mapa_interior_1"], outline=acento, width=2, tags="sala_layer",
             )
         elif sid == 2:  # Motores: doble núcleo de reactor térmico
             rw = dim * 0.21
             for dx in (-dim * 0.22, dim * 0.22):
                 self.create_oval(
                     cx + dx - rw, cy - rw, cx + dx + rw, cy + rw,
-                    fill="#3B1D1B", outline=AMBAR, width=2, tags="sala_layer",
+                    fill=pal["mapa_interior_2"], outline=pal["acento"], width=2, tags="sala_layer",
                 )
                 self.create_oval(
                     cx + dx - rw * 0.45, cy - rw * 0.45, cx + dx + rw * 0.45, cy + rw * 0.45,
-                    fill=DORADO, outline="", tags="sala_layer",
+                    fill=pal["titulo"], outline="", tags="sala_layer",
                 )
         elif sid == 3:  # Red Eléctrica: cables trifásicos + nodo voltios
-            for idx, col in enumerate((CORAL, AMBAR, "#4CC9F0")):
+            for idx, col in enumerate((pal["alerta"], pal["acento"], pal["mapa_visera_fill"])):
                 lx = cx + (idx - 1) * dim * 0.22
                 self.create_line(
                     lx, cy - dim * 0.26, lx, cy + dim * 0.26,
@@ -428,7 +434,7 @@ class MapaNaveAurora(tk.Canvas):
                 )
             self.create_rectangle(
                 cx - dim * 0.28, cy - dim * 0.14, cx + dim * 0.28, cy + dim * 0.14,
-                fill="#221D3A", outline=acento, width=2, tags="sala_layer",
+                fill=pal["mapa_interior_3"], outline=acento, width=2, tags="sala_layer",
             )
         elif sid == 4:  # Escudos Defensivos: emisor hexagonal esmeralda
             r = dim * 0.30
@@ -437,11 +443,11 @@ class MapaNaveAurora(tk.Canvas):
                 a = math.radians(60 * k)
                 pts_hex.extend((cx + r * math.cos(a), cy + r * math.sin(a)))
             self.create_polygon(
-                *pts_hex, fill="#113831", outline=ESMERALDA, width=2, tags="sala_layer",
+                *pts_hex, fill=pal["mapa_interior_4"], outline=pal["exito"], width=2, tags="sala_layer",
             )
             self.create_oval(
                 cx - r * 0.35, cy - r * 0.35, cx + r * 0.35, cy + r * 0.35,
-                fill=ESMERALDA if completa else "#2EC4B6", outline="", tags="sala_layer",
+                fill=pal["exito"] if completa else pal["mapa_interior_1_arc"], outline="", tags="sala_layer",
             )
         elif sid == 5:  # Tanques de Combustible: celdas criogénicas verticales
             tw = dim * 0.18
@@ -449,40 +455,42 @@ class MapaNaveAurora(tk.Canvas):
             for dx in (-dim * 0.22, dim * 0.22):
                 self.create_rectangle(
                     cx + dx - tw, cy - th, cx + dx + tw, cy + th,
-                    fill="#261A42", outline=VIOLETA_SUAVE, width=2, tags="sala_layer",
+                    fill=pal["mapa_interior_5"], outline=pal["violeta"], width=2, tags="sala_layer",
                 )
                 self.create_rectangle(
                     cx + dx - tw * 0.65, cy, cx + dx + tw * 0.65, cy + th * 0.78,
-                    fill=VIOLETA_SUAVE, outline="", tags="sala_layer",
+                    fill=pal["violeta"], outline="", tags="sala_layer",
                 )
         elif sid == 6:  # Telemetría: plato de radar concéntrico
             r = dim * 0.32
-            self.create_oval(cx - r, cy - r, cx + r, cy + r, fill="#2A1429", outline="#FF7B89", width=2, tags="sala_layer")
+            self.create_oval(cx - r, cy - r, cx + r, cy + r, fill=pal["mapa_interior_6"], outline=pal["salas_acento"][6], width=2, tags="sala_layer")
             self.create_oval(
                 cx - r * 0.5, cy - r * 0.5, cx + r * 0.5, cy + r * 0.5,
-                fill="", outline="#8A4B63", width=1, tags="sala_layer",
+                fill="", outline=pal["mapa_interior_6_ring"], width=1, tags="sala_layer",
             )
         elif sid == 7:  # Computadora Central: núcleo de servidores y terminal central
             sw = dim * 0.15
             sh = dim * 0.26
             self.create_rectangle(
                 cx - dim * 0.36, cy - sh, cx - dim * 0.20, cy + sh,
-                fill="#14293D", outline="#4B7B99", width=1, tags="sala_layer",
+                fill=pal["mapa_interior_7a"], outline=pal["mapa_pasillo_luz"], width=1, tags="sala_layer",
             )
             self.create_rectangle(
                 cx + dim * 0.20, cy - sh, cx + dim * 0.36, cy + sh,
-                fill="#14293D", outline="#4B7B99", width=1, tags="sala_layer",
+                fill=pal["mapa_interior_7a"], outline=pal["mapa_pasillo_luz"], width=1, tags="sala_layer",
             )
             self.create_rectangle(
                 cx - sw, cy - sw * 0.85, cx + sw, cy + sw * 0.85,
-                fill="#1B4D5C", outline="#7CE0D3", width=2, tags="sala_layer",
+                fill=pal["mapa_interior_7b"], outline=pal["salas_acento"][7], width=2, tags="sala_layer",
             )
 
     def _dibujar_salas_vectoriales(self, ox: float, oy: float, bw: float, bh: float):
+        pal = obtener_paleta()
+        salas = obtener_salas()
         tam_titulo = max(9, min(12, int(bw / 92)))
         tam_sub = max(9, min(11, int(bw / 102)))
 
-        for sid, nombre, color_sala, metodos in SALAS:
+        for sid, nombre, color_sala, metodos in salas:
             cx, cy, x0, y0, x1, y1 = self._rect_sala(sid)
             comp = sum(1 for m in metodos if self.estado.completados.get(m))
             tot = len(metodos)
@@ -495,28 +503,28 @@ class MapaNaveAurora(tk.Canvas):
             es_hover = sid == self.sala_hover
 
             if es_actual:
-                borde = DORADO
+                borde = pal["titulo"]
                 grosor = 3
             elif es_hover:
-                borde = AMBAR
+                borde = pal["acento"]
                 grosor = 2
             elif completa:
-                borde = ESMERALDA
+                borde = pal["exito"]
                 grosor = 2
             else:
-                borde = "#5A4B7C"
+                borde = pal["mapa_sala_borde_idle"]
                 grosor = 2
 
             if es_actual or es_hover:
                 pad = 5 if es_actual else 3
                 self.create_rectangle(
                     x0 - pad, y0 - pad, x1 + pad, y1 + pad,
-                    fill="", outline=DORADO if es_actual else AMBAR, width=1, dash=(5, 4), tags="sala_layer",
+                    fill="", outline=pal["titulo"] if es_actual else pal["acento"], width=1, dash=(5, 4), tags="sala_layer",
                 )
 
             self.create_rectangle(
                 x0, y0, x1, y1,
-                fill="#18132C" if not completa else "#142426",
+                fill=pal["mapa_sala_fill"] if not completa else pal["mapa_sala_ok_fill"],
                 outline=borde,
                 width=grosor,
                 tags="sala_layer",
@@ -527,7 +535,7 @@ class MapaNaveAurora(tk.Canvas):
             h_head = max(20.0, (y1 - y0) * 0.24)
             self.create_rectangle(
                 x0 + 1, y0 + 1, x1 - 1, y0 + h_head,
-                fill=DORADO if es_actual else ("#1B3330" if completa else "#241C3D"),
+                fill=pal["titulo"] if es_actual else (pal["mapa_sala_head_ok"] if completa else pal["mapa_sala_head"]),
                 outline="",
                 tags="sala_layer",
             )
@@ -535,7 +543,7 @@ class MapaNaveAurora(tk.Canvas):
                 cx,
                 y0 + h_head * 0.5,
                 text=NOMBRES_CORTOS_MAPA[sid],
-                fill="#130F21" if es_actual else (ESMERALDA if completa else CREMA),
+                fill=pal["mapa_texto_activo"] if es_actual else (pal["exito"] if completa else pal["texto"]),
                 font=(FUENTE_UI, tam_titulo, "bold"),
                 tags="sala_layer",
             )
@@ -543,9 +551,9 @@ class MapaNaveAurora(tk.Canvas):
             h_foot = max(18.0, (y1 - y0) * 0.22)
             self.create_rectangle(
                 x0 + 1, y1 - h_foot, x1 - 1, y1 - 1,
-                fill="#110D1F", outline="", tags="sala_layer",
+                fill=pal["mapa_sala_foot"], outline="", tags="sala_layer",
             )
-            color_est = DORADO if es_actual or prom_est >= 2.95 else (ESMERALDA if completa else GRIS_CALIDO)
+            color_est = pal["titulo"] if (es_actual or prom_est >= 2.95) else (pal["exito"] if completa else pal["texto_sec"])
             self.create_text(
                 x0 + (x1 - x0) * 0.28,
                 y1 - h_foot * 0.5,
@@ -578,25 +586,27 @@ class MapaNaveAurora(tk.Canvas):
                     cx,
                     y0 - 11,
                     text=f"{sum_est:.1f}/{max_est:.0f} EST.  •  CLIC PARA ABRIR",
-                    fill=DORADO,
+                    fill=pal["titulo"],
                     font=(FUENTE_MONO, tam_sub, "bold"),
                     tags="sala_layer",
                 )
 
     def _dibujar_barra_progreso(self, w: int, h: int):
+        pal = obtener_paleta()
+        salas = obtener_salas()
         ox = 12
         bx1 = w - 12
         fuente_hud = max(10, min(12, int(w / 76)))
 
-        nombre_sel = next((s[1] for s in SALAS if s[0] == self.sala_actual), "")
+        nombre_sel = next((s[1] for s in salas if s[0] == self.sala_actual), "")
         y_bot = h - max(34, int(h * 0.062))
-        self.create_rectangle(ox, y_bot, bx1, h - 6, fill="#141024", outline=BORDE_CALIDO, width=1)
+        self.create_rectangle(ox, y_bot, bx1, h - 6, fill=pal["superficie"], outline=pal["borde"], width=1)
         self.create_text(
             ox + 16,
             (y_bot + h - 6) / 2,
             anchor="w",
             text=f"SECTOR ACTIVO: 0{self.sala_actual} — {nombre_sel}",
-            fill=DORADO,
+            fill=pal["titulo"],
             font=(FUENTE_UI, fuente_hud, "bold"),
         )
         if w >= 640:
@@ -605,7 +615,7 @@ class MapaNaveAurora(tk.Canvas):
                 (y_bot + h - 6) / 2,
                 anchor="e",
                 text="WASD / Flechas para mover   •   ENTER o Clic para ingresar",
-                fill=CREMA,
+                fill=pal["texto"],
                 font=(FUENTE_UI, max(9, fuente_hud - 1)),
             )
 

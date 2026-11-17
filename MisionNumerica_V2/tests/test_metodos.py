@@ -653,6 +653,98 @@ class TestMetodosOficiales(unittest.TestCase):
             finally:
                 root.destroy()
 
+    def test_v4_2_tema_claro_oscuro_y_persistencia(self):
+        from MisionNumerica_V2.ui.tema import (
+            PALETAS_TEMA,
+            establecer_tema_actual,
+            obtener_paleta,
+            obtener_tema_actual,
+        )
+        from MisionNumerica_V2.ui.escenarios import obtener_escenario
+        from MisionNumerica_V2.ui.formulas_latex import LATEX_METODOS, renderizar_formula_tk
+        from MisionNumerica_V2.ui.mapa_progreso import MapaProgresoUI
+        from MisionNumerica_V2.nave import NaveAuroraApp
+
+        self.assertIn("claro", PALETAS_TEMA)
+        self.assertIn("oscuro", PALETAS_TEMA)
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                ruta = os.path.join(tmp, "tema_estado.json")
+                est = EstadoJuego(ruta=ruta)
+                self.assertEqual(est.tema_visual, "oscuro")
+                est.registrar_victoria("Lagrange", 12.5, 0, seed_id="P0-111111", plantilla_id="S1_LAG_CHAPRA_18_6")
+                est.establecer_tema_visual("claro")
+
+                # Recargar desde disco conserva tema claro e integridad HMAC
+                est2 = EstadoJuego(ruta=ruta)
+                self.assertEqual(est2.tema_visual, "claro")
+                self.assertTrue(est2.integridad_verificada)
+
+                app = NaveAuroraApp(estado=est2)
+                app.attributes("-alpha", 0.0)
+                app.geometry("1200x760+-4000+-4000")
+                try:
+                    self.assertEqual(obtener_tema_actual(), "claro")
+                    pal_c = obtener_paleta()
+                    self.assertEqual(app.cget("bg"), pal_c["fondo"])
+
+                    # Navegar todas las vistas en modo claro y luego alternar en vivo en mision
+                    app.mostrar_inicio()
+                    app.update()
+                    app.mostrar_historia()
+                    app.update()
+                    app.mostrar_mapa_nave()
+                    app.update()
+                    app.mostrar_sala(1)
+                    app.update()
+                    app.mostrar_entorno_metodo("Interpolación lineal", 1)
+                    app.update()
+                    app.mostrar_certificado_final()
+                    app.update()
+
+                    # ConsolaMision: alternar tema claro <-> oscuro sin perder problema ni paso ni calc
+                    con = ConsolaMision(app, "Metodo Newton-Raphson", est2, al_volver=lambda: None)
+                    con.pack(fill="both", expand=True)
+                    app.update()
+
+                    seed_antes = con.mision["seed_id"]
+                    con.entry_resp.insert(0, "1.234")
+                    con.calculadora.entry_expr.insert(0, "4!")
+                    con.calculadora.calcular()
+
+                    # Cambiar a oscuro en vivo
+                    con._alternar_tema()
+                    app.update()
+                    self.assertEqual(obtener_tema_actual(), "oscuro")
+                    self.assertEqual(est2.tema_visual, "oscuro")
+                    self.assertEqual(con.mision["seed_id"], seed_antes)
+                    self.assertEqual(con.entry_resp.get(), "1.234")
+                    self.assertEqual(con.calculadora.ans, 24.0)
+                    self.assertEqual(con.lbl_enunciado.cget("fg"), obtener_paleta("oscuro")["texto"])
+
+                    # Volver a claro en vivo y verificar renderizado LaTeX y escenarios legibles
+                    con._alternar_tema()
+                    app.update()
+                    self.assertEqual(obtener_tema_actual(), "claro")
+                    esc_c = obtener_escenario(1, "claro")
+                    self.assertIsNotNone(renderizar_formula_tk(LATEX_METODOS["Interpolación lineal"], esc_c["acento"]))
+                    self.assertEqual(con.txt_tabla.cget("bg"), pal_c["superficie"])
+                    self.assertEqual(con.txt_tabla.cget("fg"), pal_c["texto"])
+                    con._abrir_modal_guia()
+                    app.update()
+                    self.assertIsNotNone(con._guia_overlay)
+                    con._cerrar_modal_guia()
+                    con.destroy()
+
+                    mp = MapaProgresoUI(app, est2, lambda _s: None)
+                    app.update()
+                    self.assertEqual(mp.cget("bg"), pal_c["fondo"])
+                    mp.destroy()
+                finally:
+                    app.destroy()
+        finally:
+            establecer_tema_actual("oscuro")
+
 
 if __name__ == "__main__":
     unittest.main()

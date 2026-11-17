@@ -52,6 +52,7 @@ class EstadoJuego:
         self.integridad_verificada: bool = True
         self.ultimo_error_carga: Optional[str] = None
         self._sin_limite_tiempo: bool = False
+        self.tema_visual: str = "oscuro"  # "oscuro" | "claro"
         self.perfiles: Dict[str, Dict[str, Any]] = {
             "practica": _nuevo_perfil_vacio(),
             "examen": _nuevo_perfil_vacio(),
@@ -116,6 +117,12 @@ class EstadoJuego:
             return False
         self._sin_limite_tiempo = bool(activo)
         return self._sin_limite_tiempo
+
+    def establecer_tema_visual(self, tema: str) -> str:
+        """Guarda preferencia visual ('oscuro' | 'claro') sin alterar el payload HMAC."""
+        self.tema_visual = "claro" if str(tema).strip().lower() == "claro" else "oscuro"
+        self.guardar()
+        return self.tema_visual
 
     @staticmethod
     def _normalizar_perfil(raw: Any) -> Dict[str, Any]:
@@ -182,6 +189,7 @@ class EstadoJuego:
         self.matricula = ""
         self.integridad_verificada = True
         self.ultimo_error_carga = None
+        self.tema_visual = "oscuro"
 
         if not os.path.exists(self.ruta):
             return
@@ -203,6 +211,8 @@ class EstadoJuego:
         if "practica" in data or "examen" in data:
             modo = str(data.get("modo_actual", "practica"))
             self.modo_actual = "examen" if modo == "examen" else "practica"
+            tema_raw = str(data.get("tema_visual", "oscuro")).strip().lower()
+            self.tema_visual = "claro" if tema_raw == "claro" else "oscuro"
             self.alumno = str(data.get("alumno", "")).strip()
             self.matricula = str(data.get("matricula", "")).strip()
             self.perfiles["practica"] = self._normalizar_perfil(data.get("practica"))
@@ -235,6 +245,7 @@ class EstadoJuego:
         }
         data = dict(cuerpo)
         data["firma_hmac"] = _firmar_dict(cuerpo)
+        data["tema_visual"] = self.tema_visual
 
         directorio = os.path.dirname(self.ruta) or "."
         tmp_path: Optional[str] = None

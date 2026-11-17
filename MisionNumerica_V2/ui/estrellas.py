@@ -2,7 +2,8 @@
 
 import math
 import tkinter as tk
-from .tema import DORADO, AMBAR, PANEL_OSCURO
+from typing import Optional
+from .tema import PANEL_OSCURO, obtener_paleta
 
 
 def dibujar_estrella_canvas(
@@ -11,8 +12,15 @@ def dibujar_estrella_canvas(
     cy: float,
     radio: float,
     estado: str,
+    tema: Optional[str] = None,
 ) -> None:
     """Dibuja en `canvas` una estrella 'llena', 'media' (.5 izquierda) o 'vacia'."""
+    pal = obtener_paleta(tema)
+    col_llena = pal["estrella_llena"]
+    col_borde = pal["estrella_borde"]
+    col_vacia_fill = pal["estrella_vacia_fill"]
+    col_vacia_borde = pal["estrella_vacia_borde"]
+
     r_int = radio * 0.44
     pts = []
     for i in range(10):
@@ -21,11 +29,11 @@ def dibujar_estrella_canvas(
         pts.extend([cx + r_act * math.cos(ang), cy + r_act * math.sin(ang)])
 
     if estado == "llena":
-        canvas.create_polygon(pts, fill=DORADO, outline=AMBAR, width=1.5)
+        canvas.create_polygon(pts, fill=col_llena, outline=col_borde, width=1.5)
         return
 
     # Base vacía (también sirve de mitad derecha apagada en modo 'media')
-    canvas.create_polygon(pts, fill="#261F3C", outline="#5B4D80", width=1.4)
+    canvas.create_polygon(pts, fill=col_vacia_fill, outline=col_vacia_borde, width=1.4)
     if estado != "media":
         return
 
@@ -35,7 +43,7 @@ def dibujar_estrella_canvas(
     pts_izq = []
     for idx in (0, 9, 8, 7, 6, 5):
         pts_izq.extend([pts[2 * idx], pts[2 * idx + 1]])
-    canvas.create_polygon(pts_izq, fill=DORADO, outline=AMBAR, width=1.4)
+    canvas.create_polygon(pts_izq, fill=col_llena, outline=col_borde, width=1.4)
 
 
 class EstrellasCanvas(tk.Canvas):
@@ -48,17 +56,24 @@ class EstrellasCanvas(tk.Canvas):
         maximo: int = 3,
         radio: int = 11,
         espaciado: int = 26,
-        bg: str = PANEL_OSCURO,
+        bg: Optional[str] = None,
         **kwargs,
     ):
+        pal = obtener_paleta()
+        bg_eff = bg if bg is not None else pal["panel"]
         ancho = max(maximo * espaciado + 8, 60)
         alto = max(radio * 2 + 10, 28)
-        super().__init__(master, width=ancho, height=alto, bg=bg, highlightthickness=0, **kwargs)
+        super().__init__(master, width=ancho, height=alto, bg=bg_eff, highlightthickness=0, **kwargs)
         self.maximo = maximo
         self.radio = radio
         self.espaciado = espaciado
         self.valor = 0.0
         self.actualizar(valor)
+
+    def aplicar_tema(self, bg: Optional[str] = None) -> None:
+        pal = obtener_paleta()
+        self.configure(bg=bg if bg is not None else pal["panel"])
+        self.actualizar(self.valor)
 
     def actualizar(self, valor: float) -> None:
         val_cuant = round(max(0.0, min(float(self.maximo), float(valor))) * 2.0) / 2.0

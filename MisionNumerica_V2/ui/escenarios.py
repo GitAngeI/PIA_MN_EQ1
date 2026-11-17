@@ -1,6 +1,8 @@
-"""Gestor de Escenarios Dinámicos según la Sala / Módulo activo."""
+"""Gestor de Escenarios Dinámicos según la Sala / Módulo activo y tema visual."""
 
-from typing import Dict, Any
+from typing import Dict, Any, Optional
+
+from .tema import obtener_paleta, obtener_tema_actual
 
 
 ESCENARIOS_POR_SALA: Dict[int, Dict[str, Any]] = {
@@ -62,6 +64,69 @@ ESCENARIOS_POR_SALA: Dict[int, Dict[str, Any]] = {
     },
 }
 
+ESCENARIOS_POR_SALA_CLARO: Dict[int, Dict[str, Any]] = {
+    1: {
+        "nombre": "Ruta Estelar Dorada",
+        "fondo": "#EEF0F4",
+        "panel": "#F7F8FA",
+        "acento": "#9A5B00",
+        "tipo_efecto": "nebulosa",
+        "descripcion": "Sector de navegacion estelar con estrellas de referencia.",
+    },
+    2: {
+        "nombre": "Camara de Propulsores",
+        "fondo": "#F0EEF2",
+        "panel": "#F8F7FA",
+        "acento": "#C25E00",
+        "tipo_efecto": "propulsion",
+        "descripcion": "Zona termica de los motores principales.",
+    },
+    3: {
+        "nombre": "Cinturon de Asteroides",
+        "fondo": "#F1EEF1",
+        "panel": "#F9F7F8",
+        "acento": "#C84B31",
+        "tipo_efecto": "asteroides",
+        "descripcion": "Campo de asteroides interfiriendo con la red electrica.",
+    },
+    4: {
+        "nombre": "Orbita Esmeralda",
+        "fondo": "#EAEFF1",
+        "panel": "#F5F8F9",
+        "acento": "#0D7A5F",
+        "tipo_efecto": "escudos",
+        "descripcion": "Planeta esmeralda protegido por campo deflector.",
+    },
+    5: {
+        "nombre": "Planeta Azul Criogenico",
+        "fondo": "#ECEFF5",
+        "panel": "#F6F8FB",
+        "acento": "#6D3FC0",
+        "tipo_efecto": "planeta_azul",
+        "descripcion": "Planeta azul y escudos de combustible activados.",
+    },
+    6: {
+        "nombre": "Sector de Radar Profundo",
+        "fondo": "#F1EDF2",
+        "panel": "#F9F7FA",
+        "acento": "#BE2B45",
+        "tipo_efecto": "radar",
+        "descripcion": "Ondas de telemetria y barrido de largo alcance.",
+    },
+    7: {
+        "nombre": "Nucleo Cuantico Central",
+        "fondo": "#EBF0F5",
+        "panel": "#F6F9FC",
+        "acento": "#0E7490",
+        "tipo_efecto": "nodos",
+        "descripcion": "Red orbital de la computadora central.",
+    },
+}
 
-def obtener_escenario(sala_id: int) -> Dict[str, Any]:
-    return ESCENARIOS_POR_SALA.get(sala_id, ESCENARIOS_POR_SALA[1])
+
+def obtener_escenario(sala_id: int, tema: Optional[str] = None) -> Dict[str, Any]:
+    clave = obtener_tema_actual() if tema is None else ("claro" if str(tema).lower() == "claro" else "oscuro")
+    if clave == "claro":
+        base = ESCENARIOS_POR_SALA_CLARO.get(sala_id, ESCENARIOS_POR_SALA_CLARO[1])
+        return dict(base)
+    return dict(ESCENARIOS_POR_SALA.get(sala_id, ESCENARIOS_POR_SALA[1]))
