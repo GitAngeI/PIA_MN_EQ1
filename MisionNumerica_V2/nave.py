@@ -221,7 +221,7 @@ class NaveAuroraApp(tk.Tk):
         tarjeta = tk.Frame(inner, bg=PANEL_OSCURO, highlightbackground=AMBAR, highlightthickness=3, padx=28, pady=20)
         tarjeta.pack(expand=True, padx=28, pady=20)
 
-        lbl_uni = tk.Label(tarjeta, text="ANALISIS NUMERICO  -  FIME UANL", bg=PANEL_OSCURO, fg=AMBAR, font=("Segoe UI", 15, "bold"))
+        lbl_uni = tk.Label(tarjeta, text="METODOS NUMERICOS  -  FIME / UANL", bg=PANEL_OSCURO, fg=AMBAR, font=("Segoe UI", 15, "bold"))
         lbl_uni.pack()
         lbl_tit = tk.Label(tarjeta, text="PROYECTO AURORA // MISION NUMERICA", bg=PANEL_OSCURO, fg=DORADO, font=("Segoe UI", 22, "bold"))
         lbl_tit.pack(pady=(4, 4))

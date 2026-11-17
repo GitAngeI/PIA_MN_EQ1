@@ -589,7 +589,7 @@ class MapaNaveAurora(tk.Canvas):
                 )
 
     def _dibujar_barra_progreso(self, w: int, h: int):
-        tot_comp = len(self.estado.completados)
+        tot_comp = self.estado.total_completados()
         tot_est = self.estado.total_estrellas()
         ox = 12
         oy = 8

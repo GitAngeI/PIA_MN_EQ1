@@ -1,4 +1,4 @@
-"""Suite de validación contra los PDFs oficiales de la Ing. Oralia Zamora Pequeño."""
+"""Suite de validación"""
 
 import csv
 import json

@@ -378,35 +378,73 @@ def _construir_no_uniforme(r: random.Random, usar_lagrange: bool, tema: str) -> 
     if usar_lagrange:
         res = lagrange(xs, ys, x_eval)
         metodo = "Lagrange"
-        formula = "g(x) = sum_{i=0..n} f(xi) * Li(x),   Li(x) = prod_{j!=i} (x - xj)/(xi - xj)"
+        formula = "g(x) = sum_{i=1..n} y_i * L_i(x),   L_i(x) = prod_{j!=i} (x - x_j)/(x_i - x_j)"
         g_fn = lambda t: lagrange(xs, ys, t)["gx"]
         filas_tp = [
-            {"paso_min": 1, "valores": ["L0(x)", f"Producto sobre x0={xs[0]}", _red(res["bases"][0], 4)]},
-            {"paso_min": 2, "valores": ["L1(x)", f"Producto sobre x1={xs[1]}", _red(res["bases"][1], 4)]},
-            {"paso_min": 2, "valores": ["L2(x)", f"Producto sobre x2={xs[2]}", _red(res["bases"][2], 4)]},
-            {"paso_min": 3, "valores": [f"g({x_eval})", "sum y_i * L_i(x)", _red(res["gx"], 4)]},
+            {"paso_min": 1, "valores": ["L1(x)", f"Nodo x1={xs[0]}", _red(res["bases"][0], 4)]},
+            {"paso_min": 2, "valores": ["L2(x)", f"Nodo x2={xs[1]}", _red(res["bases"][1], 4)]},
+            {"paso_min": 2, "valores": ["L3(x)", f"Nodo x3={xs[2]}", _red(res["bases"][2], 4)]},
+            {"paso_min": 3, "valores": [f"g({x_eval})", "y1*L1 + y2*L2 + y3*L3", _red(res["gx"], 4)]},
         ]
         pasos = [
-            _paso_num("Paso 1: Base L0(x)", f"Calcula L0({x_eval}) = [({x_eval}-x1)({x_eval}-x2)] / [(x0-x1)(x0-x2)]:", res["bases"][0], "Sustituye los nodos x1, x2 y divide entre el producto de diferencias con x0.", 0.015),
-            _paso_num("Paso 2: Base L1(x)", f"Calcula L1({x_eval}) = [({x_eval}-x0)({x_eval}-x2)] / [(x1-x0)(x1-x2)]:", res["bases"][1], "Ojo con el signo de (x1 - x0) y (x1 - x2) en el denominador.", 0.015),
-            _paso_num("Paso 3: Polinomio P2(x)", f"Calcula g({x_eval}) = y0*L0 + y1*L1 + y2*L2:", res["gx"], "Calcula L2(x) (nota: L0 + L1 + L2 = 1) y suma los productos ponderados por y_i.", 0.02),
+            _paso_num(
+                "Paso 1: Base L1(x)",
+                f"Calcula L1({x_eval}) = [({x_eval}-x2)({x_eval}-x3)] / [(x1-x2)(x1-x3)]:",
+                res["bases"][0],
+                "Sustituye x2 y x3 en el numerador y divide entre (x1 - x2)*(x1 - x3).",
+                0.015,
+            ),
+            _paso_num(
+                "Paso 2: Base L2(x)",
+                f"Calcula L2({x_eval}) = [({x_eval}-x1)({x_eval}-x3)] / [(x2-x1)(x2-x3)]:",
+                res["bases"][1],
+                "Cuida el signo de (x2 - x1) y (x2 - x3) en el denominador.",
+                0.015,
+            ),
+            _paso_num(
+                "Paso 3: Polinomio g(x)",
+                f"Calcula g({x_eval}) = y1*L1 + y2*L2 + y3*L3:",
+                res["gx"],
+                "Calcula L3(x) (recuerda que L1 + L2 + L3 = 1) y suma los productos y_i * L_i(x).",
+                0.02,
+            ),
         ]
     else:
         res = newton_diferencias_divididas(xs, ys, x_eval)
         metodo = "Newton con diferencias divididas"
-        formula = "f[xi,xj]=(f(xi)-f(xj))/(xi-xj)   |   g(x)=b0 + b1(x-x0) + b2(x-x0)(x-x1)"
+        formula = "D_{k,i} = (D_{k-1,i+1} - D_{k-1,i})/(x_{i+k} - x_i)   |   g(x) = y1 + D_{1,1}(x-x1) + D_{2,1}(x-x1)(x-x2)"
         g_fn = lambda t: newton_diferencias_divididas(xs, ys, t)["gx"]
-        b0, b1, b2 = res["coeficientes"]
+        y1, d1_1, d2_1 = res["coeficientes"]
+        d1_2 = res["tabla"][1][1]
         filas_tp = [
-            {"paso_min": 0, "valores": ["b0 = f[x0]", f"f({xs[0]})", _red(b0, 4)]},
-            {"paso_min": 1, "valores": ["b1 = f[x0,x1]", f"(y1-y0)/({xs[1]}-{xs[0]})", _red(b1, 4)]},
-            {"paso_min": 2, "valores": ["b2 = f[x0,x1,x2]", "orden 2", _red(b2, 4)]},
-            {"paso_min": 3, "valores": [f"g({x_eval})", "forma de Newton", _red(res["gx"], 4)]},
+            {"paso_min": 0, "valores": ["y1", f"y({xs[0]})", _red(y1, 4)]},
+            {"paso_min": 1, "valores": ["D1,1", f"(y2-y1)/({xs[1]}-{xs[0]})", _red(d1_1, 4)]},
+            {"paso_min": 1, "valores": ["D1,2", f"(y3-y2)/({xs[2]}-{xs[1]})", _red(d1_2, 4)]},
+            {"paso_min": 2, "valores": ["D2,1", f"(D1,2-D1,1)/({xs[2]}-{xs[0]})", _red(d2_1, 4)]},
+            {"paso_min": 3, "valores": [f"g({x_eval})", "serie de Newton", _red(res["gx"], 4)]},
         ]
         pasos = [
-            _paso_num("Paso 1: Primera diferencia b1", f"Calcula b1 = (f(x1) - f(x0)) / (x1 - x0):", b1, "Divide el incremento en y entre el incremento en x del primer par de nodos.", 0.015),
-            _paso_num("Paso 2: Segunda diferencia b2", f"Calcula b2 = f[x0, x1, x2]:", b2, "Calcula primero f[x1,x2] y luego (f[x1,x2] - b1) / (x2 - x0).", 0.015),
-            _paso_num("Paso 3: Estimacion g(x)", f"Calcula g({x_eval}) = b0 + b1(x-x0) + b2(x-x0)(x-x1):", res["gx"], "Sustituye b0, b1, b2 y evalua el polinomio en x objetivo.", 0.02),
+            _paso_num(
+                "Paso 1: Primera diferencia D1,1",
+                "Calcula D1,1 = (y2 - y1) / (x2 - x1):",
+                d1_1,
+                "Divide el incremento (y2 - y1) entre (x2 - x1) usando las filas 1 y 2.",
+                0.015,
+            ),
+            _paso_num(
+                "Paso 2: Segunda diferencia D2,1",
+                "Calcula D2,1 = (D1,2 - D1,1) / (x3 - x1):",
+                d2_1,
+                "Calcula primero D1,2 = (y3 - y2)/(x3 - x2) y luego divide (D1,2 - D1,1) entre (x3 - x1).",
+                0.015,
+            ),
+            _paso_num(
+                "Paso 3: Estimacion g(x)",
+                f"Calcula g({x_eval}) = y1 + D1,1*(x - x1) + D2,1*(x - x1)*(x - x2):",
+                res["gx"],
+                f"Sustituye y1, D1,1 y D2,1 evaluando en x = {x_eval}.",
+                0.02,
+            ),
         ]
 
     curva = _muestrear_curva(g_fn, min(xs) - 0.3, max(xs) + 0.3)
@@ -416,7 +454,7 @@ def _construir_no_uniforme(r: random.Random, usar_lagrange: bool, tema: str) -> 
         "oxigeno_seg": 190,
         "formula": formula,
         "enunciado": f"Muestreo de {titulo_ctx} con nodos no equidistantes. Determina el valor interpolado g({x_eval}) mediante {metodo}.",
-        "datos_tabla": (["i", "x_i", "f(x_i)"], [[i, xs[i], ys[i]] for i in range(3)]),
+        "datos_tabla": (["i", "x_i", "y_i"], [[i + 1, xs[i], ys[i]] for i in range(3)]),
         "tabla_progresiva": {"titulo": f"Construccion ({metodo})", "columnas": ["Termino", "Formula", "Valor"], "filas": filas_tp},
         "grafica": {
             "tipo": "funcion",
@@ -539,8 +577,8 @@ def _construir_raiz_bracket(r: random.Random, metodo: str, familia: str) -> Dict
         pista1 = "Promedia los limites iniciales a y b."
         pista3 = "Determina cual mitad conserva el cambio de signo y calcula su nuevo punto medio."
     else:
-        formula = "xr = b - [f(b)*(a - b)] / [f(a) - f(b)]"
-        pista1 = "Sustituye a, b, f(a) y f(b) en la secante entre los extremos."
+        formula = "xr = a - [f(a)*(b - a)] / [f(b) - f(a)]"
+        pista1 = "Sustituye a, b, f(a) y f(b) en xr = a - f(a)*(b - a) / (f(b) - f(a))."
         pista3 = "Evalua f(xr1) para elegir el nuevo intervalo [a, b] y repite la formula de falsa posicion."
 
     return {
@@ -631,24 +669,30 @@ def _construir_raiz_abierta(r: random.Random, metodo: str, modo: str) -> Dict[st
             q = r.choice([2, 4, 5])
             f = lambda x, p=p, q=q: x ** 3 - p * x - q
             f_txt = f"x^3 - {p}x - {q}"
-            x_1, x0 = 1.5, 2.5
+            x0, x1 = 1.5, 2.5
         else:
             k = round(r.uniform(0.5, 0.9), 2)
             f = lambda x, k=k: x ** 2 - k * math.cos(x) - 1.0
             f_txt = f"x^2 - {k}*cos(x) - 1   (x en rad)"
-            x_1, x0 = 1.0, 2.0
-        res = metodo_secante(f, x_1, x0, tol=1e-9, max_iter=6)
+            x0, x1 = 1.0, 2.0
+        res = metodo_secante(f, x0, x1, tol=1e-9, max_iter=6)
         its = res["iteraciones"]
         it1, it2 = its[0], its[1]
-        curva = _muestrear_curva(f, min(x_1, it2["x_sig"]) - 0.5, max(x0, it2["x_sig"]) + 0.5)
-        filas_tp = [{"paso_min": idx, "valores": [it["iter"], _red(it["x_ant"], 4), _red(it["x_act"], 4), _red(it["x_sig"], 4)]} for idx, it in enumerate(its, start=1)]
+        curva = _muestrear_curva(f, min(x0, it2["x_sig"]) - 0.5, max(x1, it2["x_sig"]) + 0.5)
+        filas_tp = [
+            {"paso_min": idx, "valores": [it["iter"], _red(it["x_ant"], 4), _red(it["x_act"], 4), _red(it["x_sig"], 4)]}
+            for idx, it in enumerate(its, start=1)
+        ]
         return {
             "metodo": metodo,
             "sala_id": 2,
             "oxigeno_seg": 180,
-            "formula": "x_{i+1} = x_i - [f(x_i)*(x_{i-1} - x_i)] / [f(x_{i-1}) - f(x_i)]",
-            "enunciado": f"Aplica el metodo de la Secante a f(x) = {f_txt} partiendo de x(-1) = {x_1} y x0 = {x0}.",
-            "datos_tabla": (["Parametro", "Valor"], [["f(x)", f_txt], ["x(-1)", x_1], ["x0", x0], ["f(x(-1))", _red(f(x_1), 4)], ["f(x0)", _red(f(x0), 4)]]),
+            "formula": "x_{i+1} = x_i - [f(x_i)*(x_i - x_{i-1})] / [f(x_i) - f(x_{i-1})]",
+            "enunciado": f"Aplica el metodo de la Secante a f(x) = {f_txt} partiendo de los valores iniciales x0 = {x0} y x1 = {x1}.",
+            "datos_tabla": (
+                ["Parametro", "Valor"],
+                [["f(x)", f_txt], ["x0", x0], ["x1", x1], ["f(x0)", _red(f(x0), 4)], ["f(x1)", _red(f(x1), 4)]],
+            ),
             "tabla_progresiva": {"titulo": "Iteraciones Secante", "columnas": ["Iter", "x_{i-1}", "x_i", "x_{i+1}"], "filas": filas_tp},
             "grafica": {
                 "tipo": "funcion",
@@ -657,14 +701,32 @@ def _construir_raiz_abierta(r: random.Random, metodo: str, modo: str) -> Dict[st
                 "ylabel": "f(x)",
                 "curva_pts": curva,
                 "marcadores": [
-                    {"x": it1["x_sig"], "y": f(it1["x_sig"]), "etiqueta": "x1", "color": "#FFD166", "paso_min": 1},
-                    {"x": it2["x_sig"], "y": f(it2["x_sig"]), "etiqueta": "x2", "color": "#5CE0A0", "paso_min": 2},
+                    {"x": it1["x_sig"], "y": f(it1["x_sig"]), "etiqueta": "x2", "color": "#FFD166", "paso_min": 1},
+                    {"x": it2["x_sig"], "y": f(it2["x_sig"]), "etiqueta": "x3", "color": "#5CE0A0", "paso_min": 2},
                 ],
             },
             "pasos": [
-                _paso_num("Paso 1: Calcular x1", f"Usa x(-1)={x_1} y x0={x0} para calcular x1:", it1["x_sig"], "Aplica x1 = x0 - f(x0)*(x(-1) - x0) / (f(x(-1)) - f(x0)).", 0.025),
-                _paso_num("Paso 2: Calcular x2", "Usa ahora x0 y x1 para calcular x2:", it2["x_sig"], "Evalua f(x1) y aplica la secante entre x0 y x1.", 0.025),
-                _paso_num("Paso 3: Error aproximado e2", "Calcula |x2 - x1|:", it2["error"], "Toma el valor absoluto de la diferencia entre x2 y x1.", 0.02),
+                _paso_num(
+                    "Paso 1: Primera aproximacion x2 (Iter 1)",
+                    f"Con x0={x0} y x1={x1}, calcula la primera aproximacion x2:",
+                    it1["x_sig"],
+                    "Aplica x2 = x1 - f(x1)*(x1 - x0) / (f(x1) - f(x0)).",
+                    0.025,
+                ),
+                _paso_num(
+                    "Paso 2: Segunda aproximacion x3 (Iter 2)",
+                    "Usa ahora x1 y x2 para calcular la siguiente aproximacion x3:",
+                    it2["x_sig"],
+                    "Evalua f(x2) y aplica la formula de la secante entre x1 y x2.",
+                    0.025,
+                ),
+                _paso_num(
+                    "Paso 3: Error aproximado",
+                    "Calcula el error absoluto e = |x3 - x2|:",
+                    it2["error"],
+                    "Toma el valor absoluto de la diferencia entre x3 y x2.",
+                    0.02,
+                ),
             ],
             "resultado_final": it2["x_sig"],
         }
@@ -795,24 +857,28 @@ def _construir_sistema_directo(r: random.Random, metodo: str, contexto: str) -> 
 
 def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, desordenado: bool) -> Dict[str, Any]:
     A_dom, b_dom, _ = _resolver_3x3_para_solucion(r, diag_dom=True)
+    es_gs = metodo == "Gauss-Seidel"
+    x0_vec = [0.0, 0.0, 0.0] if es_gs else [1.0, 1.0, 1.0]
+    x0_txt = "(0, 0, 0)" if es_gs else "(1, 1, 1)"
+    x0_corto = "(0,0,0)" if es_gs else "(1,1,1)"
+    val_ini_str = "0.000" if es_gs else "1.000"
+    val_num_ini = 0 if es_gs else 1
+
     if desordenado:
-        # Permutar filas 0 y 1 para que inicialmente NO sea diagonal dominante (pregunta conceptual real!)
         A_mostrada = [A_dom[1][:], A_dom[0][:], A_dom[2][:]]
         b_mostrado = [b_dom[1], b_dom[0], b_dom[2]]
-        # Aun asi la solucion en A_dom es diagonal dominante; pedimos detectar si la matriz dada lo es y usamos A_dom reordenada para iterar
         idx_dom = 1
-        nota_reord = "Nota: Tras verificar, reordena filas si hace falta para asegurar |a_ii| > suma |a_ij| antes de iterar."
+        nota_reord = f"Nota: Reordena filas para asegurar |a_ii| > suma |a_ij| e inicia con x^(0) = {x0_txt}."
     else:
         A_mostrada = A_dom
         b_mostrado = b_dom
         idx_dom = 0
-        nota_reord = "Inicia con vector semilla x^(0) = (0, 0, 0)."
+        nota_reord = f"Inicia con vector semilla x^(0) = {x0_txt}."
 
-    es_gs = metodo == "Gauss-Seidel"
     res = (
-        metodo_gauss_seidel(A_dom, b_dom, [0.0, 0.0, 0.0], tol=1e-9, max_iter=6)
+        metodo_gauss_seidel(A_dom, b_dom, x0_vec, tol=1e-9, max_iter=6)
         if es_gs
-        else metodo_jacobi(A_dom, b_dom, [0.0, 0.0, 0.0], tol=1e-9, max_iter=6)
+        else metodo_jacobi(A_dom, b_dom, x0_vec, tol=1e-9, max_iter=6)
     )
     it1, it2 = res["iteraciones"][0], res["iteraciones"][1]
     formula = (
@@ -820,18 +886,27 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
         if es_gs
         else "x_i^(k+1) = (b_i - sum_{j!=i} a_ij x_j^(k)) / a_ii"
     )
+    filas_dom_txt = _matriz_a_filas_texto(A_dom, b_dom)
     filas_tp = [
-        {"paso_min": 0, "valores": ["0", "0.000", "0.000", "0.000"]},
+        {"paso_min": 0, "valores": ["0", val_ini_str, val_ini_str, val_ini_str]},
+    ]
+    if desordenado:
+        filas_tp.extend([
+            {"paso_min": 1, "valores": ["Dom. Ec.1", filas_dom_txt[0][1], "fila 2 orig.", "|a11| dom"]},
+            {"paso_min": 1, "valores": ["Dom. Ec.2", filas_dom_txt[1][1], "fila 1 orig.", "|a22| dom"]},
+            {"paso_min": 1, "valores": ["Dom. Ec.3", filas_dom_txt[2][1], "fila 3 orig.", "|a33| dom"]},
+        ])
+    filas_tp.extend([
         {"paso_min": 2, "valores": ["1", _red(it1["x"][0], 4), _red(it1["x"][1], 4), _red(it1["x"][2], 4)]},
         {"paso_min": 3, "valores": ["2", _red(it2["x"][0], 4), _red(it2["x"][1], 4), _red(it2["x"][2], 4)]},
-    ]
+    ])
     return {
         "metodo": metodo,
         "sala_id": 3,
         "oxigeno_seg": 190,
         "formula": formula,
         "enunciado": f"Analisis de {contexto} mediante {metodo}. {nota_reord}",
-        "datos_tabla": (["Ecuacion", "Sistema 3x3 (x^(0) = (0,0,0))"], _matriz_a_filas_texto(A_mostrada, b_mostrado)),
+        "datos_tabla": (["Ecuacion", f"Sistema 3x3 (x^(0) = {x0_corto})"], _matriz_a_filas_texto(A_mostrada, b_mostrado)),
         "tabla_progresiva": {"titulo": f"Iteraciones {metodo}", "columnas": ["k", "x1", "x2", "x3"], "filas": filas_tp},
         "grafica": {
             "tipo": "sistema",
@@ -848,10 +923,20 @@ def _construir_sistema_iterativo(r: random.Random, metodo: str, contexto: str, d
                 idx_dom,
                 "Compara el valor absoluto de la diagonal contra la suma de los otros dos coeficientes en cada fila.",
             ),
-            _paso_num("Paso 2: Primera iteracion x1^(1)", "Con el sistema en forma diagonal dominante y x^(0)=(0,0,0), calcula x1^(1):", it1["x"][0], "Despeja x1 de la 1ra ecuacion dominante sustituyendo x2=0, x3=0.", 0.025),
+            _paso_num(
+                "Paso 2: Primera iteracion x1^(1)",
+                (
+                    f"Intercambiando Ec.1 y Ec.2 para lograr diagonal dominante y con x^(0)={x0_corto}, calcula x1^(1):"
+                    if desordenado
+                    else f"Con el sistema en forma diagonal dominante y x^(0)={x0_corto}, calcula x1^(1):"
+                ),
+                it1["x"][0],
+                f"Despeja x1 de la primera ecuacion dominante sustituyendo x2 y x3 con los valores iniciales {x0_corto}.",
+                0.025,
+            ),
             _paso_num(
                 "Paso 3: Primera iteracion x2^(1)",
-                f"Calcula x2^(1) usando {'el nuevo x1^(1)' if es_gs else 'el vector previo (0,0,0)'}:",
+                f"Calcula x2^(1) usando {'el nuevo x1^(1) y x3^(0)=0' if es_gs else f'el vector previo {x0_corto}'}:",
                 it1["x"][1],
                 "En Gauss-Seidel sustituyes el x1 recien hallado; en Jacobi usas solo valores del paso anterior k.",
                 0.025,
@@ -978,13 +1063,13 @@ def _construir_ajuste(r: random.Random, metodo: str, contexto: str, tipo_fn: str
     else:  # Cuadratica con Funcion
         if tipo_fn == "exp":
             xs = [0.0, 0.4, 0.8, 1.2, 1.6, 2.0]
-            f_base = lambda x: math.exp(0.5 * x)
-            f_str = "e^(0.5x)"
+            f_base = math.exp
+            f_str = "e^x"
             x_eval = 1.0
         else:
             xs = [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-            f_base = math.sqrt
-            f_str = "sqrt(x)"
+            f_base = math.log
+            f_str = "ln(x)"
             x_eval = 2.5
         c0 = round(r.uniform(0.5, 1.5), 1)
         c1 = round(r.uniform(0.6, 1.2), 2)
@@ -1156,20 +1241,42 @@ def _construir_edo_1er(r: random.Random, metodo: str, tipo_edo: str, contexto: s
         f_txt = f"{b_c}t - {a_c}y + 2"
 
     sala_id = 6 if metodo in ("Euler Modificado", "Runge - Kutta 2ndo Orden") else 7
+    tabla_edo = [["y' = f(y,t)", f_txt], ["y0", y0], ["t0", t0], ["h", h]]
     if metodo == "Euler Modificado":
-        res = euler_modificado(f_edo, y0, t0, h, pasos=2)
+        y1_dato = round(y0 + h * f_edo(y0, t0), 2)
+        tabla_edo.append(["y1 (estimado)", y1_dato])
+        res = euler_modificado(f_edo, y0, t0, h, pasos=2, y1_estimado=y1_dato)
         p1, p2 = res["historial"][0], res["historial"][1]
-        formula = "y* = yn + h*f(yn,tn)   |   y_{n+1} = yn + (h/2)*[f(yn,tn) + f(y*, t_{n+1})]"
+        formula = "t_{n+1} = tn + h   |   y'_{n+1} = yn + (h/2)*[f(yn,tn) + f(y_{n+1}, t_{n+1})]"
         pasos = [
-            _paso_num("Paso 1: Predictor y1*", "Calcula y1* = y0 + h*f(y0, t0):", p1["y_pred"], "Evalua primero f(y0,t0), multiplica por h y suma a y0.", 0.02),
-            _paso_num("Paso 2: Corrector y1", "Calcula y1 = y0 + (h/2)*[f(y0,t0) + f(y1*, t1)]:", p1["y_sig"], "Promedia la pendiente inicial f0 y la pendiente predicha en (y1*, t0+h).", 0.02),
-            _paso_num("Paso 3: Segundo paso y2", f"Avanza otro paso (hasta t2={_red(p2['t_sig'],3)}) y calcula y2:", res["y_final"], "Usa y1 como nuevo punto inicial y repite predictor-corrector.", 0.03),
+            _paso_num(
+                "Paso 1: Evaluar f(y0, t0)",
+                f"Con y0={y0} y t0={t0}, calcula f(y0, t0):",
+                p1["f_n"],
+                f"Sustituye los valores iniciales (y0={y0}, t0={t0}) en la expresion {f_txt}.",
+                0.02,
+            ),
+            _paso_num(
+                "Paso 2: Evaluar f(y1, t1)",
+                f"Con t1 = {_red(p1['t_sig'], 3)} y el dato y1 = {y1_dato}, calcula f(y1, t1):",
+                p1["f_sig"],
+                f"Sustituye el dato estimado y1 ({y1_dato}) y t1 (t0 + h) en la expresion {f_txt}.",
+                0.02,
+            ),
+            _paso_num(
+                "Paso 3: Valor corregido y'1",
+                "Calcula y'1 = y0 + (h/2)*[f(y0,t0) + f(y1,t1)]:",
+                p1["y_sig"],
+                "Multiplica (h/2) por la suma de los Pasos 1 y 2, y sumalo a y0.",
+                0.025,
+            ),
         ]
         y1_val = p1["y_sig"]
         filas_tp = [
-            {"paso_min": 0, "valores": [0, t0, y0, "-"]},
-            {"paso_min": 2, "valores": [1, _red(p1["t_sig"], 3), _red(y1_val, 4), f"y1*={_red(p1['y_pred'],4)}"]},
-            {"paso_min": 3, "valores": [2, _red(p2["t_sig"], 3), _red(res["y_final"], 4), f"y2*={_red(p2['y_pred'],4)}"]},
+            {"paso_min": 0, "valores": [0, t0, y0, f"y1(dato)={y1_dato}"]},
+            {"paso_min": 1, "valores": ["f(y0,t0)", _red(t0, 3), _red(y0, 4), f"f0={_red(p1['f_n'],4)}"]},
+            {"paso_min": 2, "valores": ["f(y1,t1)", _red(p1["t_sig"], 3), y1_dato, f"f1={_red(p1['f_sig'],4)}"]},
+            {"paso_min": 3, "valores": [1, _red(p1["t_sig"], 3), _red(y1_val, 4), "y'1 corregido"]},
         ]
     elif metodo == "Runge - Kutta 2ndo Orden":
         res = runge_kutta_2(f_edo, y0, t0, h, pasos=2)
@@ -1236,7 +1343,7 @@ def _construir_edo_1er(r: random.Random, metodo: str, tipo_edo: str, contexto: s
         "oxigeno_seg": 200,
         "formula": formula,
         "enunciado": f"Modelado de {contexto} mediante la EDO y' = {f_txt} con y({t0}) = {y0} y paso h = {h} ({metodo}).",
-        "datos_tabla": (["Parametro", "Valor"], [["y' = f(y,t)", f_txt], ["y0", y0], ["t0", t0], ["h", h]]),
+        "datos_tabla": (["Parametro", "Valor"], tabla_edo),
         "tabla_progresiva": {"titulo": f"Trayectoria Numerica ({metodo})", "columnas": ["Paso n", "t_n", "y_n", "Pendientes"], "filas": filas_tp},
         "grafica": {
             "tipo": "edo",
@@ -1251,7 +1358,7 @@ def _construir_edo_1er(r: random.Random, metodo: str, tipo_edo: str, contexto: s
             ],
         },
         "pasos": pasos,
-        "resultado_final": y1_val if metodo != "Euler Modificado" else y2_val,
+        "resultado_final": y1_val,
     }
 
 
@@ -1398,7 +1505,7 @@ BANCO_PLANTILLAS: Dict[str, List[Dict[str, Any]]] = {
     ],
     "Cuadratica con Funcion": [
         {"id": "S4_CF_ZAMORA_EXP", "referencia": "Apuntes Ing. Oralia Zamora — Cuadratica con Funcion", "construir": lambda r: _construir_ajuste(r, "Cuadratica con Funcion", "crecimiento termico exponencial", "exp")},
-        {"id": "S4_CF_NIEVES_SQRT", "referencia": "Nieves & Dominguez, Cap. 6 — Ajuste en base no lineal", "construir": lambda r: _construir_ajuste(r, "Cuadratica con Funcion", "descarga por orificio sqrt(x)", "sqrt")},
+        {"id": "S4_CF_NIEVES_SQRT", "referencia": "Nieves & Dominguez, Cap. 6 — Ajuste en base logaritmica", "construir": lambda r: _construir_ajuste(r, "Cuadratica con Funcion", "descarga en base ln(x)", "ln")},
     ],
     "Regla Trapezoidal": [
         {"id": "S5_TRAP_CHAPRA_21_2", "referencia": "Chapra & Canale (7a ed.), Ej. 21.2 — Regla del trapecio", "construir": lambda r: _construir_integracion(r, "Regla Trapezoidal", False, "energia disipada analitica")},

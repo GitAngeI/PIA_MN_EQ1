@@ -120,7 +120,7 @@ FUNDAMENTOS_METODOS = {
     "Gauss - Jordan": "Reduccion por filas hasta matriz identidad [I | x].\nNormalizar pivote y anular arriba y abajo.",
     "Eliminacion gaussiana": "Eliminacion hacia adelante hasta matriz triangular superior [U | b']\ny sustitucion hacia atras.",
     "Gauss-Seidel": "Verificar Diagonal Dominante |a_ii| > sum |a_ij|. x0 = (0, 0, ..., 0).\nUsa inmediatamente los valores recien actualizados. e <= 0.001",
-    "Jacobi": "Verificar Diagonal Dominante |a_ii| > sum |a_ij|.\nCalcula cada x_i^(k+1) usando solo los valores de la iteracion k. e <= 0.001",
+    "Jacobi": "Verificar Diagonal Dominante |a_ii| > sum |a_ij|. x0 = (1, 1, ..., 1).\nCalcula cada x_i^(k+1) usando solo los valores de la iteracion k. e <= 0.001",
     "Linea Recta": "g(x) = a0 + a1*x\nSistema normal 2x2 con [n, sum(x) | sum(y)] y [sum(x), sum(x^2) | sum(xy)].",
     "Cuadratica": "g(x) = a0 + a1*x + a2*x^2\nSistema normal 3x3 con sumatorias hasta sum(x^4) y sum(x^2*y).",
     "Cubica": "g(x) = a0 + a1*x + a2*x^2 + a3*x^3\nSistema normal 4x4 con sumatorias hasta sum(x^6) y sum(x^3*y).",
