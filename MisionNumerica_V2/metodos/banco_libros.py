@@ -1164,8 +1164,8 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
     cerradas_alpha = {1: "1/2", 2: "1/3", 3: "3/8", 4: "2/45", 5: "5/288", 6: "1/140"}
 
     if metodo == "Regla Trapezoidal":
-        n = r.choice([4, 5, 6])
-        formula = "h = (b - a)/n   |   I = (h/2) * [f(a) + 2*sum_{i=1}^{n-1} f(xi) + f(b)]"
+        n = r.choice([3, 5, 7])  # Ajustado a solo impares según criterio de clase
+        formula = "h = (b - a)/n (n impar)   |   I = (h/2) * [f(a) + 2*sum_{i=1}^{n-1} f(xi) + f(b)]"
     elif metodo == "Regla de 1/3 de Simpson":
         n = r.choice([4, 6])
         formula = "h = (b - a)/n (n par)   |   I = (h/3) * [f0 + 4*sum impares + 2*sum pares + fn]"
@@ -1260,13 +1260,16 @@ def _construir_integracion(r: random.Random, metodo: str, tabular: bool, context
             0.02,
             tooltip=f"Incremento h = (b - a) / ({denom_txt}) entre puntos x_i = a + i*h.",
         )
+        preg_p2 = f"Lee de la tabla el valor f(x1) para x1 = {_red(res['xs'][1], 4)}:" if tabular else f"Calcula f(x1) en x1 = a + h = {_red(res['xs'][1], 4)}:"
+        pista_p2 = "Busca en la tabla el valor de f(x) en la fila donde i=1." if tabular else "Evalua f en el primer nodo interior x1 = a + h."
+        
         paso2 = _paso_num(
-            "Paso 2: Evaluacion en nodo interior f(x1)",
-            f"Evalua f(x1) = {f_txt if not tabular else 'tabla'} en x1 = {_red(res['xs'][1], 4)} (peso c1={res['pesos'][1]}):",
+            "Paso 2: Valor del nodo interior f(x1)",
+            preg_p2,
             f1,
-            "Evalua f(a + h) o lee el nodo i=1 (x1 = a + h).",
+            pista_p2,
             0.03,
-            tooltip=f"Primer nodo activo x1 = a + h; multiplica luego por su peso c1 = {res['pesos'][1]}.",
+            tooltip="Ordenada f(x1) en el primer punto interior de la malla.",
         )
         alpha_str = abiertas_alpha[n] if "Abiertas" in metodo else cerradas_alpha[n]
         pista3 = f"Aplica I = ({alpha_str}) * h * sum(c_i * f(x_i)) usando pesos {res['pesos']}."
