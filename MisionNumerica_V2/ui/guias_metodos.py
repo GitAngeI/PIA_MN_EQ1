@@ -280,30 +280,34 @@ GUIAS_METODOS: Dict[str, Dict[str, Any]] = {
     "Lineal con Funcion": {
         "fuente": "OR/MCuadrados/LinealCuadraticaFuncion.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Modelo: g(x) = a0 + a1*x + a2*phi(x)   (phi: ln, exp, sin, cos, tan)\n"
+            "Modelo: g(x) = a0 + a1*x + a2*f(x)   (f: ln, exp, sin, cos, tan)\n"
             "Sistema normal 3x3:\n"
-            "  [ n,        sum x,      sum phi     | sum y     ]\n"
-            "  [ sum x,    sum x^2,    sum x*phi   | sum xy    ]\n"
-            "  [ sum phi,  sum x*phi,  sum phi^2   | sum y*phi ]"
+            "  [ n,     sum x,   sum f(x)   | sum y   ]\n"
+            "  [ sum x, sum x^2, sum x*f(x) | sum xy  ]\n"
+            "  [ sum f(x), sum x*f(x), sum f(x)^2 | sum y*f(x) ]"
         ),
-        "variables": "phi(x) en radianes si es trigonometrica. Se calculan 3 columnas extra: phi, x*phi, phi^2, y*phi.",
+        "variables": "f(x) en radianes si es trigonometrica. Se calculan 3 columnas extra: f, x*f, f^2, y*f.",
         "pasos_guia": [
-            "1. Evalua phi(x_i) en cada punto y suma sum phi(x_i).",
+            "1. Evalua f(x_i) en cada punto y suma sum f(x_i).",
             "2. Arma la matriz 3x3 normal y resuelvela para despejar a0, a1 y a2.",
-            "3. Sustituye el valor objetivo en g(x) = a0 + a1*x + a2*phi(x).",
+            "3. Sustituye el valor objetivo en g(x) = a0 + a1*x + a2*f(x).",
         ],
     },
     "Cuadratica con Funcion": {
         "fuente": "OR/MCuadrados/LinealCuadraticaFuncion.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Modelo: g(x) = a0 + a1*x + a2*x^2 + a3*phi(x)\n"
-            "Matriz normal 4x4 en base {1, x, x^2, phi(x)} con vector derecho [sum y, sum xy, sum x^2y, sum y*phi]."
+            "Modelo: g(x) = a0 + a1*x + a2*x^2 + a3*f(x)   (f: ln, exp, sin, cos, tan)\n"
+            "Sistema normal 4x4:\n"
+            "  [ n,       sum x,     sum x^2,   sum f(x)     | sum y     ]\n"
+            "  [ sum x,   sum x^2,   sum x^3,   sum x*f(x)   | sum xy    ]\n"
+            "  [ sum x^2, sum x^3,   sum x^4,   sum x^2*f(x) | sum x^2*y ]\n"
+            "  [ sum f(x), sum x*f(x), sum x^2*f(x), sum f(x)^2   | sum y*f(x)   ]"
         ),
-        "variables": "phi(x): funcion auxiliar (exp, sqrt, etc.). El ultimo coeficiente a3 acompana a phi(x).",
+        "variables": "f(x) en radianes si es trigonometrica. Se calculan columnas extra: f(x), x*f(x), x^2*f(x), f(x)^2, y*f(x).",
         "pasos_guia": [
-            "1. Evalua phi(x_i) en cada dato para formar sumatorias de x^k, x^k*phi y y*phi.",
-            "2. Resuelve el sistema normal 4x4 para hallar (a0, a1, a2, a3).",
-            "3. Evalua g(x) en el punto x pedido.",
+            "1. Evalua f(x_i) en cada punto y suma sum f(x_i).",
+            "2. Arma la matriz 4x4 normal y resuelvela para despejar a0, a1, a2 y a3.",
+            "3. Sustituye el valor objetivo en g(x) = a0 + a1*x + a2*x^2 + a3*f(x).",
         ],
     },
     "Regla Trapezoidal": {
