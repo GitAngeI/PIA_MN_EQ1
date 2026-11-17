@@ -277,18 +277,24 @@ def _s1_il_nieves_densidad(r: random.Random) -> Dict[str, Any]:
 def _construir_newton_finitas(r: random.Random, adelante: bool, contexto: str) -> Dict[str, Any]:
     h = r.choice([0.5, 1.0, 2.0]) if "vapor" in contexto else r.choice([0.2, 0.5, 1.0])
     x0 = r.choice([1.0, 2.0, 4.0, 10.0]) if "vapor" in contexto else r.choice([0.5, 1.0, 1.5])
-    xs = [round(x0 + i * h, 4) for i in range(4)]
+    
+    # CAMBIO 1: Generamos solo 3 puntos en vez de 4
+    xs = [round(x0 + i * h, 4) for i in range(3)]
+    
     c2 = r.choice([0.3, -0.25, 0.4])
     c1 = round(r.uniform(0.8, 2.2), 2)
     c0 = round(r.uniform(1.0, 6.0), 2)
     pol = lambda t: c2 * (t - x0) ** 2 + c1 * (t - x0) + c0
     ys = [_red(pol(x), 4) for x in xs]
+    
     if adelante:
         frac = r.choice([0.35, 0.55, 0.75])
         x_eval = round(xs[0] + frac * h, 4)
         res = newton_adelante(xs, ys, x_eval)
         metodo = "Newton hacia adelante"
-        formula = "s = (x - x1)/h   |   g(x) = y1 + D1*s + D2*s*(s-1)/2! + D3*s*(s-1)*(s-2)/3!"
+        
+        # CAMBIO 2: La fórmula solo llega hasta la segunda diferencia (D2)
+        formula = "s = (x - x1)/h   |   g(x) = y1 + D1*s + D2*s*(s-1)/2!"
         d_list = res["diferencias_iniciales"]
         simb = "D"
         nota_s = f"s = ({x_eval} - {xs[0]}) / {h}"
@@ -301,7 +307,9 @@ def _construir_newton_finitas(r: random.Random, adelante: bool, contexto: str) -
         x_eval = round(xs[-1] - frac * h, 4)
         res = newton_atras(xs, ys, x_eval)
         metodo = "Newton hacia atrás"
-        formula = "s = (x - xn)/h   |   g(x) = yn + V1*s + V2*s*(s+1)/2! + V3*s*(s+1)*(s+2)/3!"
+        
+        # CAMBIO 3: La fórmula solo llega hasta la segunda diferencia (V2)
+        formula = "s = (x - xn)/h   |   g(x) = yn + V1*s + V2*s*(s+1)/2!"
         d_list = res["diferencias_finales"]
         simb = "V"
         nota_s = f"s = ({x_eval} - {xs[-1]}) / {h}"
@@ -322,17 +330,22 @@ def _construir_newton_finitas(r: random.Random, adelante: bool, contexto: str) -
         return r_tmp["gx"]
 
     curva = _muestrear_curva(g_poly, xs[0] - 0.15 * h, xs[-1] + 0.15 * h)
+    
+    # CAMBIO 4: Actualizamos el enunciado para decir "3 nodos"
     enunc = (
         f"Tabla equiespaciada de {contexto} (paso uniforme h={h}). "
-        f"Estima g({x_eval}) empleando el metodo de {metodo} con los 4 nodos tabulados."
+        f"Estima g({x_eval}) empleando el metodo de {metodo} con los 3 nodos tabulados."
     )
+    
     return {
         "metodo": metodo,
         "sala_id": 1,
         "oxigeno_seg": 180,
         "formula": formula,
         "enunciado": enunc,
-        "datos_tabla": (["i", "x_i", "y_i"], [[i + 1, xs[i], ys[i]] for i in range(4)]),
+        
+        # CAMBIO 5: Rango de la tabla de datos ajustado a 3
+        "datos_tabla": (["i", "x_i", "y_i"], [[i + 1, xs[i], ys[i]] for i in range(3)]),
         "tabla_progresiva": {
             "titulo": f"Tabla de Trabajo ({metodo})",
             "columnas": ["Etapa", "Detalle", "Valor"],
@@ -354,7 +367,9 @@ def _construir_newton_finitas(r: random.Random, adelante: bool, contexto: str) -
         "pasos": [
             _paso_num("Paso 1: Coordenada local s", f"Con h = {h}, calcula {nota_s}:", res["s"], pista_s, 0.015),
             _paso_num(f"Paso 2: Diferencia de orden 2 ({simb}2)", preg_dif, dif_pedida, pista_dif, 0.025),
-            _paso_num("Paso 3: Evaluar g(x)", f"Calcula g({x_eval}) sustituyendo en la serie de Newton:", res["gx"], "Combina y_base + D1*s + D2*s*(s±1)/2 + D3*s*(s±1)*(s±2)/6.", 0.025),
+            
+            # CAMBIO 6: Pista actualizada para no mencionar D3
+            _paso_num("Paso 3: Evaluar g(x)", f"Calcula g({x_eval}) sustituyendo en la serie de Newton:", res["gx"], "Combina y_base + D1*s + D2*s*(s±1)/2.", 0.025),
         ],
         "resultado_final": res["gx"],
     }
