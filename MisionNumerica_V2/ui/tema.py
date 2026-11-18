@@ -399,8 +399,8 @@ TEMAS_SALAS = {
     3: "Sistemas de Ecuaciones Lineales",
     4: "Minimos Cuadrados (Ajuste de Curvas)",
     5: "Integracion Numerica",
-    6: "Ecuaciones Diferenciales Ordinarias (EDO)",
-    7: "Sistemas Runge - Kutta",
+    6: "Ecuaciones Diferenciales Ordinarias (Euler modificado)",
+    7: "Ecuaciones Diferenciales Ordinarias (Runge - Kutta)",
 }
 
 FUNDAMENTOS_METODOS = {

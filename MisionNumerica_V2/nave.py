@@ -1,4 +1,4 @@
-"""Misión Numérica - Nave Aurora (Python / Tkinter) - Temario Oficial Ing. Oralia Zamora."""
+"""Misión Numérica - Nave Aurora (Python / Tkinter)."""
 
 import os
 import sys
@@ -737,14 +737,14 @@ class NaveAuroraApp(tk.Tk):
         _dibujar_alerta()
         parpadear()
 
-        tk.Label(card, text="BITACORA DE MISION // ANO 2041", bg=pal["panel"], fg=pal["titulo"], font=F_TITULO).pack(pady=(0, 10))
+        tk.Label(card, text="BITACORA DE MISION // AÑO 2041", bg=pal["panel"], fg=pal["titulo"], font=F_TITULO).pack(pady=(0, 10))
         texto = (
             "La nave de exploracion Aurora se aproxima a la orbita de Marte cuando una anomalia "
             "electromagnetica paraliza su computadora central. Los sistemas de pilotaje, "
             "soporte vital y propulsion estan fuera de linea.\n\n"
             "Como ingeniero en jefe, debes acceder a las 7 secciones de la nave y resolver los "
             "32 modulos con problemas parametrizados de libros de Analisis Numerico y las "
-            "formulas oficiales de la Ing. Oralia Zamora."
+            "formulas oficiales utilizadas en el curso de Metodos Numerico."
         )
         lbl_hist = tk.Label(card, text=texto, bg=pal["panel"], fg=pal["texto"], font=("Segoe UI", 14), justify="left", wraplength=760)
         lbl_hist.pack(fill="x", pady=(0, 18))
