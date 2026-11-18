@@ -159,74 +159,78 @@ GUIAS_METODOS: Dict[str, Dict[str, Any]] = {
     "Montante": {
         "fuente": "MC/EcuacionesLineales/EcuacionesLineales.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Inicial: p_ant = 1\n"
-            "Para pivote p_k = a_{kk}:\n"
-            "  a'_{ij} = (p_k * a_{ij} - a_{ik} * a_{kj}) / p_ant  (filas != k)\n"
-            "Luego p_ant <- p_k. Al final: det(A) = p_n,   x_i = b'_i / p_n"
+            "N.E = [(E.P)(E.A) - (E.C.F.P)(E.C.C.P)] / P.A\n\n"
+            "Donde:\n"
+            "N.E = Nuevo Elemento\n"
+            "E.P = Elemento Pivote\n"
+            "E.A = Elemento Actual\n"
+            "E.C.F.P = Elemento Correspondiente Fila Pivote\n"
+            "E.C.C.P = Elemento Correspondiente Columna Pivote\n"
+            "P.A = Pivote Anterior (inicia en 1)"
         ),
-        "variables": "p_ant: pivote de la etapa previa (inicia en 1); p_3: determinante final de A.",
+        "variables": "E.P no puede ser cero. Columnas del pivote se hacen cero, la fila pasa igual.",
         "pasos_guia": [
-            "1. Para k=1..3, conserva la fila pivote k, anula su columna fuera de k y transforma el resto.",
-            "2. Divide cada determinante 2x2 entre el pivote anterior p_ant (sin redondear enteros).",
-            "3. Al terminar k=3 queda diagonal con p3 = det(A); divide cada b'_i entre det(A).",
+            "1. Define el E.P. La fila del pivote pasa igual y la columna se hace ceros.",
+            "2. Calcula cada N.E con la formula dividiendo entre P.A (el pivote del paso anterior).",
+            "3. El ultimo pivote es el determinante. Divide los terminos independientes entre este para hallar las variables.",
         ],
     },
     "Gauss - Jordan": {
         "fuente": "MC/EcuacionesLineales/EcuacionesLineales.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Transformar [A | b] -> [I | x]\n"
-            "1) Normalizar fila pivote: R_k <- R_k / a_{kk}\n"
-            "2) Anular columna k arriba y abajo: R_i <- R_i - a_{ik} * R_k  (i != k)"
+            "Pasos del método:\n"
+            "1) La fila pivote se divide entre el elemento pivote y la columna se hace ceros.\n"
+            "2) El elemento actual menos el elemento correspondiente en la columna pivote por el elemento correspondiente en la fila pivote.\n\n"
+            "N.E = E.A - (E.C.C.P * E.C.F.P)"
         ),
-        "variables": "I: matriz identidad 3x3; la columna ampliada final entrega directamente [x1, x2, x3].",
+        "variables": "Reduccion hasta obtener la matriz identidad. La ultima columna contiene las soluciones.",
         "pasos_guia": [
-            "1. Divide la primera fila entre a11 (factor 1/a11) para volver 1 el primer pivote.",
-            "2. Anula los elementos debajo y encima de cada columna pivote k=1,2,3.",
-            "3. Lee x1, x2, x3 directo de la columna derecha resultante.",
+            "1. Divide la fila pivote entre el elemento pivote y haz ceros la columna del pivote.",
+            "2. Genera los demas terminos restando al elemento actual el producto de los correspondientes en columna y fila pivote.",
+            "3. Repite hasta formar la matriz identidad y lee los valores de las variables en la ultima columna.",
         ],
     },
     "Eliminacion gaussiana": {
         "fuente": "MC/EcuacionesLineales/EcuacionesLineales.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "1) Eliminacion hacia adelante: m_{ik} = a_{ik}/a_{kk},  F_i <- F_i - m_{ik}*F_k -> [U | b']\n"
-            "2) Sustitucion regresiva:\n"
-            "   x3 = b'_3 / U33,   x2 = (b'_2 - U23*x3) / U22,   x1 = (b'_1 - U12*x2 - U13*x3) / U11"
+            "1) Operaciones de renglon para reducir a forma triangular.\n"
+            "2) Sustitucion hacia atras para calcular progresivamente los valores."
         ),
-        "variables": "U: matriz triangular superior (ceros debajo de diagonal); b': vector modificado.",
+        "variables": "Reduccion a matriz triangular superior. No hay formula estricta, solo operaciones de filas.",
         "pasos_guia": [
-            "1. Elimina columna 1 en filas 2 y 3 (calculando nuevo pivote U22) y luego columna 2 en fila 3.",
-            "2. Despeja x3 de la ultima fila triangular (b'_3 / U33).",
-            "3. Sube sustituyendo x3 -> x2 -> x1.",
+            "1. Multiplica filas por constantes y suma o resta para hacer ceros debajo de la diagonal principal.",
+            "2. Una vez en forma triangular, despeja la ultima incognita en la ultima ecuacion.",
+            "3. Aplica sustitucion hacia atras progresivamente para encontrar el resto de variables.",
         ],
     },
     "Gauss-Seidel": {
         "fuente": "MC/EcuacionesLineales/Gauss-Seidel.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Criterio: Matriz Diagonal Dominante  |a_ii| > sum_{j!=i} |a_ij|\n"
-            "x1^(k+1) = (b1 - a12*x2^(k) - a13*x3^(k)) / a11\n"
-            "x2^(k+1) = (b2 - a21*x1^(k+1) - a23*x3^(k)) / a22   (USA x1 NUEVO)\n"
-            "x3^(k+1) = (b3 - a31*x1^(k+1) - a32*x2^(k+1)) / a33"
+            "Pasos del método:\n"
+            "1) Del sistema de ecuaciones se despeja una variable de cada una.\n"
+            "2) Iniciar con un valor de cero todas las variables.\n"
+            "3) El nuevo valor de la variable se obtiene y se usa inmediatamente en la siguiente ecuacion."
         ),
-        "variables": "x^(0) = (0, 0, 0). En cuanto obtienes x1^(1), lo usas de inmediato para x2^(1).",
+        "variables": "Al calcular una variable, usala enseguida para despejar la siguiente en la iteracion.",
         "pasos_guia": [
-            "1. Comprueba |a_ii| > suma de los otros coef. en cada fila (reordena filas si falta).",
-            "2. Despeja x1 usando x2=0, x3=0 para hallar x1^(1).",
-            "3. Sustituye inmediatamente el x1^(1) recien obtenido al despejar x2^(1).",
+            "1. Verifica que la matriz sea diagonal dominante (considerando valores absolutos).",
+            "2. Despeja una variable por ecuacion e inicializalas en cero.",
+            "3. Itera calculando cada variable y usando su nuevo valor de inmediato hasta que e <= 0.001.",
         ],
     },
     "Jacobi": {
         "fuente": "MC/EcuacionesLineales/Jacobi.pdf (Ing. Oralia Zamora)",
         "ecuaciones": (
-            "Criterio: Matriz Diagonal Dominante  |a_ii| > sum_{j!=i} |a_ij|\n"
-            "x1^(k+1) = (b1 - a12*x2^(k) - a13*x3^(k)) / a11\n"
-            "x2^(k+1) = (b2 - a21*x1^(k) - a23*x3^(k)) / a22   (SOLO x1 ANTERIOR)\n"
-            "x3^(k+1) = (b3 - a31*x1^(k) - a32*x2^(k)) / a33"
+            "Pasos del método:\n"
+            "1) Del sistema de ecuaciones se despeja una variable de cada una.\n"
+            "2) Iniciar con un valor de uno todas las variables.\n"
+            "3) Calcular el nuevo valor considerando estrictamente los valores de la iteracion anterior."
         ),
-        "variables": "x^(0) = (1, 1, 1). Toda la iteracion k+1 usa exclusivamente los valores de k.",
+        "variables": "Inicia todas las variables con valor uno. No actualices variables hasta terminar la iteracion completa.",
         "pasos_guia": [
-            "1. Comprueba diagonal dominante |a_ii| > sum_{j!=i}|a_ij| en cada fila.",
-            "2. Calcula x1^(1) sustituyendo x2^(0)=1, x3^(0)=1 en la 1ra ecuacion.",
-            "3. Calcula x2^(1) usando x1^(0)=1 y x3^(0)=1 del vector previo (sin actualizar x1 aun).",
+            "1. Verifica que la matriz sea diagonal dominante (considerando valores absolutos).",
+            "2. Despeja una variable por ecuacion e inicializalas en uno.",
+            "3. Itera calculando cada variable con los valores del paso anterior hasta que e <= 0.001.",
         ],
     },
     "Linea Recta": {
