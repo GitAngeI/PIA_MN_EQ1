@@ -29,6 +29,7 @@ from MisionNumerica_V2.ui.tema import (
     alternar_tema_actual,
     crear_boton_3d,
     establecer_tema_actual,
+    normalizar_nombre_metodo,
     obtener_paleta,
     obtener_salas,
 )
@@ -42,7 +43,7 @@ TECLAS_MAPA = (
 class NaveAuroraApp(tk.Tk):
     def __init__(self, estado: EstadoJuego = None):
         super().__init__()
-        self.title("Nave Aurora // Mision Numerica v4.0")
+        self.title("Nave Aurora // Misión Numérica v4.0")
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
         ancho_ini = max(920, min(int(sw * 0.90), 1360))
@@ -272,7 +273,7 @@ class NaveAuroraApp(tk.Tk):
 
         lbl_uni = tk.Label(
             header,
-            text="FIME — UANL  |  METODOS NUMERICOS",
+            text="FIME — UANL  |  MÉTODOS NUMÉRICOS",
             bg=pal["panel"],
             fg=pal["texto_sec"],
             font=("Segoe UI", 13, "bold"),
@@ -281,7 +282,7 @@ class NaveAuroraApp(tk.Tk):
 
         lbl_tit = tk.Label(
             header,
-            text="PROYECTO AURORA // MISION NUMERICA",
+            text="PROYECTO AURORA // MISIÓN NUMÉRICA",
             bg=pal["panel"],
             fg=pal["titulo"],
             font=("Segoe UI", 24, "bold"),
@@ -290,7 +291,7 @@ class NaveAuroraApp(tk.Tk):
 
         lbl_sub = tk.Label(
             header,
-            text="Simulador Academico de Analisis Numerico   •   32 Metodos en 7 Sectores   •   Evaluacion Auditada",
+            text="Simulador Académico de Análisis Numérico   •   32 Métodos en 7 Sectores   •   Evaluación Auditada",
             bg=pal["panel"],
             fg=pal["texto"],
             font=("Segoe UI", 13),
@@ -316,7 +317,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             fila_modo,
-            text="MODALIDAD DE OPERACION:",
+            text="MODALIDAD DE OPERACIÓN:",
             bg=pal["superficie"],
             fg=pal["titulo"],
             font=(FUENTE_MONO, 12, "bold"),
@@ -324,7 +325,7 @@ class NaveAuroraApp(tk.Tk):
 
         btn_prac = tk.Button(
             fila_modo,
-            text="MODO PRACTICA (Con Pistas y Apoyo)",
+            text="MODO PRÁCTICA (Con Pistas y Apoyo)",
             font=("Segoe UI", 12, "bold"),
             bd=0,
             padx=16,
@@ -336,7 +337,7 @@ class NaveAuroraApp(tk.Tk):
 
         btn_exam = tk.Button(
             fila_modo,
-            text="MODO EXAMEN (Evaluacion Estricta)",
+            text="MODO EXAMEN (Evaluación Estricta)",
             font=("Segoe UI", 12, "bold"),
             bd=0,
             padx=16,
@@ -349,7 +350,7 @@ class NaveAuroraApp(tk.Tk):
         self.var_sin_tiempo.set(bool(getattr(self.estado, "sin_limite_tiempo", False)))
         chk = tk.Checkbutton(
             panel_perfil,
-            text="  Modo Evaluacion / Sin Limite de Tiempo (solo en Practica para revisar sin prisa)",
+            text="  Modo Evaluación / Sin Límite de Tiempo (solo en Práctica para revisar sin prisa)",
             variable=self.var_sin_tiempo,
             command=self._aplicar_sin_limite,
             bg=pal["superficie"],
@@ -411,7 +412,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             fila_datos,
-            text="MATRICULA:",
+            text="MATRÍCULA:",
             bg=pal["superficie"],
             fg=pal["texto"],
             font=("Segoe UI", 13, "bold"),
@@ -449,8 +450,8 @@ class NaveAuroraApp(tk.Tk):
         stats.grid(row=2, column=0, sticky="ew", pady=(0, 12))
 
         tarjetas_data = (
-            ("MODALIDAD ACTIVA", self.estado.modo_actual.upper(), pal["peligro"] if self.estado.es_modo_examen else pal["titulo"]),
-            ("MODULOS RESUELTOS", f"{comp} / 32", pal["titulo"] if comp < 32 else pal["exito"]),
+            ("MODALIDAD ACTIVA", "PRÁCTICA" if self.estado.modo_actual == "practica" else "EXAMEN", pal["peligro"] if self.estado.es_modo_examen else pal["titulo"]),
+            ("MÓDULOS RESUELTOS", f"{comp} / 32", pal["titulo"] if comp < 32 else pal["exito"]),
             ("ESTRELLAS OBTENIDAS", f"{est_tot:.1f} / 96.0", pal["titulo"]),
             ("AVANCE DEL SISTEMA", f"{integridad}%", pal["texto"]),
             ("ALERTAS DE VENTANA", str(self.estado.incidentes_foco), pal["alerta"] if self.estado.incidentes_foco else pal["texto"]),
@@ -499,8 +500,8 @@ class NaveAuroraApp(tk.Tk):
 
         crear_boton_3d(
             btns,
-            "BITACORA DE MISION",
-            lambda: self._transicion("CARGANDO BITACORA...", self.mostrar_historia),
+            "BITÁCORA DE MISIÓN",
+            lambda: self._transicion("CARGANDO BITÁCORA...", self.mostrar_historia),
             bg=pal["panel_elevado"],
             fg=pal["texto"],
             sombra=pal["sombra_panel"],
@@ -511,8 +512,8 @@ class NaveAuroraApp(tk.Tk):
 
         crear_boton_3d(
             btns,
-            "AUDITORIA Y CERTIFICADO",
-            lambda: self._transicion("GENERANDO AUDITORIA...", self.mostrar_certificado_final),
+            "AUDITORÍA Y CERTIFICADO",
+            lambda: self._transicion("GENERANDO AUDITORÍA...", self.mostrar_certificado_final),
             bg=pal["exito"] if comp == 32 else pal["panel_elevado"],
             fg=pal["texto_en_exito"] if comp == 32 else pal["texto"],
             sombra=pal["sombra_panel"],
@@ -595,13 +596,13 @@ class NaveAuroraApp(tk.Tk):
         mat = self.var_matricula.get().strip()
         if modo == "examen" and (len(alum) < 2 or len(mat) < 3):
             self.lbl_aviso_inicio.config(
-                text="En MODO EXAMEN ingresa Nombre del Alumno y Matricula antes de iniciar.",
+                text="En MODO EXAMEN ingresa Nombre del Alumno y Matrícula antes de iniciar.",
                 fg=obtener_paleta()["peligro"],
             )
             return
         self._aplicar_sin_limite()
         self.estado.establecer_modo(modo, alumno=alum, matricula=mat)
-        self._transicion("INICIANDO MAPA TACTICO...", self.mostrar_mapa_nave)
+        self._transicion("INICIANDO MAPA TÁCTICO...", self.mostrar_mapa_nave)
 
     def _mostrar_modal_reinicio(self, padre):
         if self._modal_inicio is not None and self._modal_inicio.winfo_exists():
@@ -635,7 +636,7 @@ class NaveAuroraApp(tk.Tk):
             bg=pal["acento"], fg=pal["texto_en_acento"], font=("Segoe UI", 12, "bold"), bd=0, padx=14, pady=8, cursor="hand2",
         ).pack(side="left", padx=6)
         tk.Button(
-            btns, text="BORRAR TODO (PRACTICA + EXAMEN)",
+            btns, text="BORRAR TODO (PRÁCTICA + EXAMEN)",
             command=lambda: _ejecutar("todo"),
             bg=pal["peligro"], fg=pal["texto_en_peligro"], font=("Segoe UI", 12, "bold"), bd=0, padx=14, pady=8, cursor="hand2",
         ).pack(side="left", padx=6)
@@ -652,7 +653,7 @@ class NaveAuroraApp(tk.Tk):
             initialfile=f"reporte_aurora_{self.estado.modo_actual}_{alum}.txt",
             defaultextension=".txt",
             filetypes=[
-                ("Reporte de Texto Auditoria (*.txt)", "*.txt"),
+                ("Reporte de Texto Auditoría (*.txt)", "*.txt"),
                 ("Tabla CSV (*.csv)", "*.csv"),
                 ("Registro JSON (*.json)", "*.json"),
             ],
@@ -705,7 +706,7 @@ class NaveAuroraApp(tk.Tk):
             grafico.create_text(cx, gh * 0.56, text="!", fill=pal["peligro"], font=("Consolas", 32, "bold"))
             grafico.create_line(cx - 125, gh * 0.56, max(160, cx - 220), gh * 0.56, fill=pal["peligro"], width=2, dash=(4, 4))
             alerta_txt_id[0] = grafico.create_text(
-                max(80, cx - 295), gh * 0.56, text="FALLO CRITICO", fill=pal["peligro"], font=("Segoe UI", 14, "bold")
+                max(80, cx - 295), gh * 0.56, text="FALLO CRÍTICO", fill=pal["peligro"], font=("Segoe UI", 14, "bold")
             )
 
         grafico.bind("<Configure>", _dibujar_alerta)
@@ -737,14 +738,14 @@ class NaveAuroraApp(tk.Tk):
         _dibujar_alerta()
         parpadear()
 
-        tk.Label(card, text="BITACORA DE MISION // AÑO 2041", bg=pal["panel"], fg=pal["titulo"], font=F_TITULO).pack(pady=(0, 10))
+        tk.Label(card, text="BITÁCORA DE MISIÓN // AÑO 2041", bg=pal["panel"], fg=pal["titulo"], font=F_TITULO).pack(pady=(0, 10))
         texto = (
-            "La nave de exploracion Aurora se aproxima a la orbita de Marte cuando una anomalia "
-            "electromagnetica paraliza su computadora central. Los sistemas de pilotaje, "
-            "soporte vital y propulsion estan fuera de linea.\n\n"
+            "La nave de exploración Aurora se aproxima a la órbita de Marte cuando una anomalía "
+            "electromagnética paraliza su computadora central. Los sistemas de pilotaje, "
+            "soporte vital y propulsión están fuera de línea.\n\n"
             "Como ingeniero en jefe, debes acceder a las 7 secciones de la nave y resolver los "
-            "32 modulos con problemas parametrizados de libros de Analisis Numerico y las "
-            "formulas oficiales utilizadas en el curso de Metodos Numerico."
+            "32 módulos con problemas parametrizados de libros de Análisis Numérico y las "
+            "fórmulas oficiales utilizadas en el curso de Métodos Numéricos."
         )
         lbl_hist = tk.Label(card, text=texto, bg=pal["panel"], fg=pal["texto"], font=("Segoe UI", 14), justify="left", wraplength=760)
         lbl_hist.pack(fill="x", pady=(0, 18))
@@ -766,7 +767,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Button(
             top,
-            text="< MENU INICIAL",
+            text="< MENÚ INICIAL",
             command=lambda: self._transicion("VOLVIENDO AL INICIO...", self.mostrar_inicio),
             bg=pal["panel_elevado"],
             fg=pal["texto"],
@@ -781,13 +782,13 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             top,
-            text="NAVE AURORA  //  PLANO TACTICO DE SISTEMAS",
+            text="NAVE AURORA  //  PLANO TÁCTICO DE SISTEMAS",
             bg=pal["panel"],
             fg=pal["titulo"],
             font=("Segoe UI", 15, "bold"),
         ).pack(side="left", padx=8)
 
-        modo_txt = f"MODO EXAMEN ({self.estado.alumno or 'Alumno'})" if self.estado.es_modo_examen else "MODO PRACTICA"
+        modo_txt = f"MODO EXAMEN ({self.estado.alumno or 'Alumno'})" if self.estado.es_modo_examen else "MODO PRÁCTICA"
         tk.Label(
             top,
             text=modo_txt,
@@ -838,7 +839,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             top,
-            text=f"MODULOS: {comp}/32   |   ESTRELLAS: {self.estado.total_estrellas():.1f}/96.0",
+            text=f"MÓDULOS: {comp}/32   |   ESTRELLAS: {self.estado.total_estrellas():.1f}/96.0",
             bg=pal["panel"],
             fg=pal["texto"],
             font=(FUENTE_MONO, 11, "bold"),
@@ -896,7 +897,7 @@ class NaveAuroraApp(tk.Tk):
 
         lbl_hud_prog = tk.Label(
             header_hud,
-            text="AVANCE DEL SECTOR: 0 / 5 MODULOS",
+            text="AVANCE DEL SECTOR: 0 / 5 MÓDULOS",
             bg=pal["superficie"],
             fg=pal["texto_sec"],
             font=(FUENTE_MONO, 10, "bold"),
@@ -909,7 +910,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             hud_der,
-            text="METODOS DEL SECTOR (CLIC PARA ABRIR):",
+            text="MÉTODOS DEL SECTOR (CLIC PARA ABRIR):",
             bg=pal["panel"],
             fg=pal["texto_sec"],
             font=(FUENTE_MONO, 10, "bold"),
@@ -946,7 +947,7 @@ class NaveAuroraApp(tk.Tk):
             tot_s = max(len(s_mets), 1)
             frac = comp_s / tot_s
             lbl_hud_prog.config(
-                text=f"AVANCE DEL SECTOR: {comp_s} / {len(s_mets)} MODULOS",
+                text=f"AVANCE DEL SECTOR: {comp_s} / {len(s_mets)} MÓDULOS",
                 fg=pal["exito"] if comp_s == len(s_mets) else pal["texto_sec"],
             )
             barra_sala.delete("all")
@@ -1076,6 +1077,17 @@ class NaveAuroraApp(tk.Tk):
             bg=pal["panel"], fg=pal["titulo"], font=(FUENTE_MONO, 10, "bold"),
         ).pack(side="right", padx=6)
 
+        hdr_metodos = tk.Frame(self.contenedor, bg=pal["fondo"])
+        hdr_metodos.pack(fill="x", padx=20, pady=(2, 0))
+        tk.Label(
+            hdr_metodos,
+            text=f"MÉTODOS DE LA SALA ({len(metodos)}):",
+            bg=pal["fondo"],
+            fg=pal["titulo"],
+            font=(FUENTE_MONO, 11, "bold"),
+            anchor="w",
+        ).pack(side="left")
+
         host_lista = tk.Frame(self.contenedor, bg=pal["fondo"])
         host_lista.pack(fill="both", expand=True, padx=16, pady=(4, 10))
         _, lista = self._crear_contenedor_scroll(host_lista, bg=pal["fondo"])
@@ -1085,7 +1097,7 @@ class NaveAuroraApp(tk.Tk):
             comp = self.estado.completados.get(metodo, False)
             rec = self.estado.obtener_record(metodo)
             est = self.estado.obtener_estrellas(metodo)
-            rec_txt = f"Rec: {rec:.1f}s" if rec is not None else "Sin record"
+            rec_txt = f"Rec: {rec:.1f}s" if rec is not None else "Sin récord"
             estado_txt = "REPARADO" if comp else "PENDIENTE"
             estado_col = pal["exito"] if comp else pal["alerta"]
 
@@ -1093,7 +1105,7 @@ class NaveAuroraApp(tk.Tk):
             fila.pack(fill="x", padx=4, pady=5)
 
             tk.Label(
-                fila, text=f"MOD {num_mod:02d}  |  {metodo}",
+                fila, text=f"MÓD {num_mod:02d}  |  {metodo}",
                 bg=pal["panel"], fg=pal["texto"], font=("Segoe UI", 13, "bold"), anchor="w",
             ).pack(side="left", padx=14, pady=12)
 
@@ -1118,6 +1130,7 @@ class NaveAuroraApp(tk.Tk):
     def mostrar_entorno_metodo(self, nombre_metodo: str, sala_id: int):
         """Pantalla de briefing (Reporte de daños + Ecuaciones oficiales) previa al cronómetro."""
         self._limpiar()
+        nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         pal = obtener_paleta()
         salas = obtener_salas()
         self._sincronizar_contenedor_tema()
@@ -1141,7 +1154,7 @@ class NaveAuroraApp(tk.Tk):
         self._crear_boton_tema(top, refrescar_fn=lambda: self.mostrar_entorno_metodo(nombre_metodo, sala_id), pady=5).pack(side="right", padx=(10, 0))
 
         tk.Label(
-            top, text=f"MODULO {num_mod:02d} // {nombre_metodo.upper()}",
+            top, text=f"MÓDULO {num_mod:02d} // {nombre_metodo.upper()}",
             bg=pal["fondo"], fg=color_sala, font=("Segoe UI", 15, "bold"),
         ).pack(side="right")
 
@@ -1152,47 +1165,47 @@ class NaveAuroraApp(tk.Tk):
         contenido = tk.Frame(info, bg=pal["panel"], padx=22, pady=16)
         contenido.pack(fill="both", expand=True)
 
-        tk.Label(contenido, text=f"FALLO DETECTADO: MODULO {num_mod:02d} AVERIADO", bg=pal["panel"], fg=pal["titulo"], font=("Segoe UI", 19, "bold"), anchor="w").pack(fill="x")
+        tk.Label(contenido, text=f"FALLO DETECTADO: MÓDULO {num_mod:02d} AVERIADO", bg=pal["panel"], fg=pal["titulo"], font=("Segoe UI", 19, "bold"), anchor="w").pack(fill="x")
         tk.Label(contenido, text=f"SALA: {nombre_sala}  |  TEMA: {tema_sala}", bg=pal["panel"], fg=pal["texto_sec"], font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x", pady=(4, 10))
 
         rep_frame = tk.Frame(contenido, bg=pal["superficie"], highlightbackground=pal["borde"], highlightthickness=1, padx=14, pady=10)
         rep_frame.pack(fill="x", pady=5)
-        tk.Label(rep_frame, text="DIAGNOSTICO DEL SISTEMA", bg=pal["superficie"], fg=color_sala, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
+        tk.Label(rep_frame, text="DIAGNÓSTICO DEL SISTEMA", bg=pal["superficie"], fg=color_sala, font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
 
         fallos_por_sala = {
             1: (
-                f"Los sensores opticos de {nombre_sala} registraron lecturas discretas incompletas durante la maniobra orbital. "
+                f"Los sensores ópticos de {nombre_sala} registraron lecturas discretas incompletas durante la maniobra orbital. "
                 f"Emplea {nombre_metodo} para construir el modelo interpolante y estimar la coordenada intermedia faltante."
             ),
             2: (
-                f"El balance termodinamico en {nombre_sala} depende de una ecuacion no lineal que perdio su punto de equilibrio. "
-                f"Aplica {nombre_metodo} para aproximar la raiz real que estabiliza el regimen de empuje."
+                f"El balance termodinámico en {nombre_sala} depende de una ecuación no lineal que perdió su punto de equilibrio. "
+                f"Aplica {nombre_metodo} para aproximar la raíz real que estabiliza el régimen de empuje."
             ),
             3: (
-                f"Las mallas de distribucion en {nombre_sala} presentan un desbalance de cargas acopladas 3x3. "
+                f"Las mallas de distribución en {nombre_sala} presentan un desbalance de cargas acopladas 3x3. "
                 f"Resuelve el sistema de ecuaciones lineales mediante {nombre_metodo} para restablecer los voltajes nominales."
             ),
             4: (
-                f"Las mediciones experimentales de {nombre_sala} presentan dispersion por ruido electromagnetico. "
-                f"Determina la curva de regresion por minimos cuadrados usando {nombre_metodo} para predecir el comportamiento del escudo."
+                f"Las mediciones experimentales de {nombre_sala} presentan dispersión por ruido electromagnético. "
+                f"Determina la curva de regresión por mínimos cuadrados usando {nombre_metodo} para predecir el comportamiento del escudo."
             ),
             5: (
-                f"El control criogenico de {nombre_sala} requiere cuantificar el flujo acumulado a partir de muestras discretas y funciones de caudal. "
+                f"El control criogénico de {nombre_sala} requiere cuantificar el flujo acumulado a partir de muestras discretas y funciones de caudal. "
                 f"Calcula el valor de la integral definida aplicando {nombre_metodo}."
             ),
             6: (
-                f"El barrido de telemetria en {nombre_sala} obedece una ecuacion diferencial ordinaria de primer orden con condicion inicial conocida. "
-                f"Aproxima el estado futuro de la senal resolviendo el paso de integracion con {nombre_metodo}."
+                f"El barrido de telemetría en {nombre_sala} obedece una ecuación diferencial ordinaria de primer orden con condición inicial conocida. "
+                f"Aproxima el estado futuro de la señal resolviendo el paso de integración con {nombre_metodo}."
             ),
             7: (
-                f"El procesador de {nombre_sala} necesita simular trayectorias dinamicas de alta precision gobernadas por ecuaciones diferenciales. "
+                f"El procesador de {nombre_sala} necesita simular trayectorias dinámicas de alta precisión gobernadas por ecuaciones diferenciales. "
                 f"Calcula las pendientes acopladas y el siguiente estado del sistema utilizando {nombre_metodo}."
             ),
         }
 
         lbl_rep = tk.Label(
             rep_frame,
-            text=fallos_por_sala.get(sala_id, f"Recalibra los parametros de {nombre_sala} usando {nombre_metodo}."),
+            text=fallos_por_sala.get(sala_id, f"Recalibra los parámetros de {nombre_sala} usando {nombre_metodo}."),
             bg=pal["superficie"], fg=pal["texto"], font=("Segoe UI", 13), justify="left", wraplength=780, anchor="w",
         )
         lbl_rep.pack(fill="x", pady=(4, 0))
@@ -1201,9 +1214,9 @@ class NaveAuroraApp(tk.Tk):
         obj_frame.pack(fill="x", pady=5)
         tk.Label(obj_frame, text="OBJETIVO Y REGLAS", bg=pal["superficie"], fg=pal["exito"], font=("Segoe UI", 13, "bold"), anchor="w").pack(fill="x")
         regla_ex = (
-            "MODO EXAMEN ACTIVO: Pistas ocultas, portapapeles bloqueado y deteccion de abandono de ventana."
+            "MODO EXAMEN ACTIVO: Pistas ocultas, portapapeles bloqueado y detección de abandono de ventana."
             if self.estado.es_modo_examen
-            else "MODO PRACTICA: Pistas habilitadas. 3.0 estrellas sin errores; -0.5 estrella por cada error."
+            else "MODO PRÁCTICA: Pistas habilitadas. 3.0 estrellas sin errores; -0.5 estrella por cada error."
         )
         lbl_obj = tk.Label(
             obj_frame,
@@ -1217,7 +1230,7 @@ class NaveAuroraApp(tk.Tk):
         fund_frame.pack(fill="x", pady=5)
         tk.Label(
             fund_frame,
-            text=f"ECUACIONES Y FUNDAMENTO MATEMATICO  |  ESCENARIO: {esc['nombre'].upper()}",
+            text=f"ECUACIONES Y FUNDAMENTO MATEMÁTICO  |  ESCENARIO: {esc['nombre'].upper()}",
             bg=pal["superficie"], fg=esc["acento"], font=("Segoe UI", 13, "bold"), anchor="w",
         ).pack(fill="x")
         latex = LATEX_METODOS.get(nombre_metodo)
@@ -1244,7 +1257,7 @@ class NaveAuroraApp(tk.Tk):
         contenido.bind("<Configure>", _ajustar_briefing, add="+")
 
         tk.Button(
-            contenido, text="ABRIR ENTORNO DE CALCULO >",
+            contenido, text="ABRIR ENTORNO DE CÁLCULO >",
             command=lambda: self._transicion(
                 "GENERANDO PROBLEMA DE LIBRO...",
                 lambda: self.mostrar_mision(nombre_metodo, sala_id),
@@ -1254,6 +1267,7 @@ class NaveAuroraApp(tk.Tk):
 
     def mostrar_mision(self, nombre_metodo: str, sala_id: int):
         self._limpiar()
+        nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         consola = ConsolaMision(
             self.contenedor,
             nombre_metodo=nombre_metodo,
@@ -1285,7 +1299,7 @@ class NaveAuroraApp(tk.Tk):
 
         tk.Label(
             top,
-            text="CERTIFICACION ACADEMICA // NAVE AURORA",
+            text="CERTIFICACIÓN ACADÉMICA // NAVE AURORA",
             bg=pal["panel"], fg=pal["titulo"], font=("Segoe UI", 16, "bold"),
         ).pack(side="left", padx=10)
 
@@ -1311,11 +1325,11 @@ class NaveAuroraApp(tk.Tk):
 
         alum = resumen["alumno"] or "Sin especificar"
         mat = resumen["matricula"] or "Sin especificar"
-        int_txt = f"HMAC VALIDA ({resumen['codigo_verificacion']})" if resumen["integridad_json_valida"] else "ADVERTENCIA INTEGRIDAD"
+        int_txt = f"HMAC VÁLIDA ({resumen['codigo_verificacion']})" if resumen["integridad_json_valida"] else "ADVERTENCIA INTEGRIDAD"
         lbl_ficha_det = tk.Label(
             ficha,
             text=(
-                f"Alumno: {alum}  |  Matricula: {mat}  |  Perfil: {resumen['modo']}  |  "
+                f"Alumno: {alum}  |  Matrícula: {mat}  |  Perfil: {resumen['modo']}  |  "
                 f"Estrellas: {resumen['estrellas_totales']}  |  Fallos: {resumen['errores_totales']}  |  "
                 f"Incidentes Foco: {resumen['incidentes_foco']}  |  {int_txt}"
             ),

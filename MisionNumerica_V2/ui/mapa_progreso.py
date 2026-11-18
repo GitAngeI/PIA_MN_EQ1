@@ -14,7 +14,7 @@ class MapaProgresoUI(tk.Toplevel):
     def __init__(self, master, estado: EstadoJuego, al_seleccionar_sala: Callable[[int], None]):
         super().__init__(master)
         pal = obtener_paleta()
-        self.title("Mapa de Progreso Galactico")
+        self.title("Mapa de Progreso Galáctico")
         self.configure(bg=pal["fondo"])
         self.transient(master)
         self.grab_set()
@@ -34,7 +34,7 @@ class MapaProgresoUI(tk.Toplevel):
         top = tk.Frame(self, bg=pal["panel"], highlightbackground=pal["titulo"], highlightthickness=2)
         top.pack(fill="x", padx=16, pady=(14, 8))
         tk.Label(
-            top, text=f"RUTA GALACTICA // {estado.total_estrellas():.1f}/96.0 ESTRELLAS",
+            top, text=f"RUTA GALÁCTICA // {estado.total_estrellas():.1f}/96.0 ESTRELLAS",
             bg=pal["panel"], fg=pal["titulo"], font=fuente_top,
         ).pack(side="left", padx=14, pady=8)
         tk.Button(

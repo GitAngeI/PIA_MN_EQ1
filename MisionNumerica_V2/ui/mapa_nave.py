@@ -27,12 +27,12 @@ SALAS_LAYOUT: Dict[int, Tuple[float, float, float, float]] = {
 }
 
 NOMBRES_CORTOS_MAPA: Dict[int, str] = {
-    1: "01. NAVEGACION",
+    1: "01. NAVEGACIÓN",
     2: "02. MOTORES",
-    3: "03. RED ELECT.",
+    3: "03. RED ELÉCT.",
     4: "04. ESCUDOS",
     5: "05. COMBUSTIBLE",
-    6: "06. TELEMETRIA",
+    6: "06. TELEMETRÍA",
     7: "07. COMPUTADORA",
 }
 

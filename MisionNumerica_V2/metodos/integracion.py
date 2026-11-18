@@ -30,7 +30,7 @@ ABIERTAS_TABLA: Dict[int, Tuple[float, List[int]]] = {
 def _validar_tabla_uniforme(xs: List[float], fs: List[float]) -> tuple[List[float], List[float], float]:
     """Valida malla uniforme equiespaciada y estrictamente creciente."""
     if len(xs) != len(fs) or len(xs) < 2:
-        raise ValueError("La tabla de integracion debe tener la misma longitud (>= 2 puntos).")
+        raise ValueError("La tabla de integración debe tener la misma longitud (>= 2 puntos).")
     xs_f = [float(x) for x in xs]
     fs_f = [float(y) for y in fs]
     h = xs_f[1] - xs_f[0]
@@ -39,7 +39,7 @@ def _validar_tabla_uniforme(xs: List[float], fs: List[float]) -> tuple[List[floa
     tol = max(1e-7, 1e-6 * abs(h))
     for i in range(1, len(xs_f)):
         if abs((xs_f[i] - xs_f[i - 1]) - h) > tol:
-            raise ValueError("La tabla de integracion debe tener paso uniforme h.")
+            raise ValueError("La tabla de integración debe tener paso uniforme h.")
     return xs_f, fs_f, h
 
 
@@ -85,11 +85,11 @@ def _integrar_desde_pesos(xs: List[float], fs: List[float], metodo_clave: str) -
         integral = alpha * h * sum(c * fx for c, fx in zip(pesos, fs_f))
         return {"h": h, "n": n_nc, "alpha": alpha, "pesos": pesos, "xs": xs_f, "fs": fs_f, "integral": integral}
 
-    raise ValueError(f"Metodo de integracion tabular no soportado: {metodo_clave}")
+    raise ValueError(f"Método de integración tabular no soportado: {metodo_clave}")
 
 
 def integrar_tabla(metodo: str, xs: List[float], fs: List[float]) -> Dict[str, Any]:
-    """Integra numericamente una tabla discreta (x_i, f(x_i)) con paso uniforme h."""
+    """Integra numéricamente una tabla discreta (x_i, f(x_i)) con paso uniforme h."""
     return _integrar_desde_pesos(xs, fs, metodo)
 
 

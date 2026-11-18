@@ -39,14 +39,14 @@ def _potencia_segura(base: float, exp: float) -> float:
     base_f = float(base)
     exp_f = float(exp)
     if base_f == 0.0 and exp_f < 0.0:
-        raise ZeroDivisionError("Division por cero en potencia negativa")
+        raise ZeroDivisionError("División por cero en potencia negativa")
     if base_f < 0.0 and not exp_f.is_integer():
-        raise ValueError("Potencia fraccionaria de base negativa genera numero complejo")
+        raise ValueError("Potencia fraccionaria de base negativa genera número complejo")
     if abs(exp_f) > 500.0 and abs(base_f) > 1.0:
         raise ValueError("Exponente demasiado grande")
     if abs(base_f) > 1.0 and exp_f > 0.0:
         if exp_f * math.log10(abs(base_f)) > 300.0:
-            raise OverflowError("Resultado fuera de rango numerico")
+            raise OverflowError("Resultado fuera de rango numérico")
     res = base_f ** exp_f
     if isinstance(res, complex) or not math.isfinite(res):
         raise ValueError("Resultado no finito")
@@ -111,12 +111,12 @@ def _expandir_factoriales(expr: str) -> str:
 def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = False) -> float:
     """Evalua una expresion matematica usando whitelist estricto sobre ast.parse."""
     if not isinstance(expr, str):
-        raise ValueError("Expresion invalida")
+        raise ValueError("Expresión inválida")
     limpia = expr.strip()
     if not limpia:
-        raise ValueError("Ingresa una expresion matematica")
+        raise ValueError("Ingresa una expresión matemática")
     if len(limpia) > 300:
-        raise ValueError("Expresion demasiado larga (maximo 300 caracteres)")
+        raise ValueError("Expresión demasiado larga (máximo 300 caracteres)")
 
     normalizada = (
         limpia.replace("^", "**")
@@ -131,7 +131,7 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
     try:
         arbol = ast.parse(normalizada, mode="eval")
     except SyntaxError as exc:
-        raise ValueError("Sintaxis matematica invalida") from exc
+        raise ValueError("Sintaxis matemática inválida") from exc
 
     constantes = {
         "pi": math.pi,
@@ -149,18 +149,18 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
     def _trig_tan(x: float) -> float:
         rad = math.radians(x) if modo_grados else x
         if abs(math.cos(rad)) < 1e-12:
-            raise ValueError("Tangente indefinida en asintota")
+            raise ValueError("Tangente indefinida en asíntota")
         return math.tan(rad)
 
     def _trig_asin(x: float) -> float:
         if x < -1.0 or x > 1.0:
-            raise ValueError("Dominio invalido para asin (requiere [-1, 1])")
+            raise ValueError("Dominio inválido para asin (requiere [-1, 1])")
         r = math.asin(x)
         return math.degrees(r) if modo_grados else r
 
     def _trig_acos(x: float) -> float:
         if x < -1.0 or x > 1.0:
-            raise ValueError("Dominio invalido para acos (requiere [-1, 1])")
+            raise ValueError("Dominio inválido para acos (requiere [-1, 1])")
         r = math.acos(x)
         return math.degrees(r) if modo_grados else r
 
@@ -174,16 +174,16 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
 
     def _ln(x: float) -> float:
         if x <= 0.0:
-            raise ValueError("Dominio invalido para ln (requiere x > 0)")
+            raise ValueError("Dominio inválido para ln (requiere x > 0)")
         return math.log(x)
 
     def _log(x: float, base: float | None = None) -> float:
         if x <= 0.0:
-            raise ValueError("Dominio invalido para log (requiere x > 0)")
+            raise ValueError("Dominio inválido para log (requiere x > 0)")
         if base is None:
             return math.log10(x)
         if base <= 0.0 or base == 1.0:
-            raise ValueError("Base invalida para logaritmo")
+            raise ValueError("Base inválida para logaritmo")
         return math.log(x, base)
 
     def _exp(x: float) -> float:
@@ -193,19 +193,19 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
 
     def _sqrt(x: float) -> float:
         if x < 0.0:
-            raise ValueError("Raiz cuadrada de numero negativo")
+            raise ValueError("Raíz cuadrada de número negativo")
         return math.sqrt(x)
 
     def _factorial(x: float) -> float:
         if not math.isfinite(x):
-            raise ValueError("Factorial requiere numero finito")
+            raise ValueError("Factorial requiere número finito")
         if abs(x - round(x)) > 1e-9:
             raise ValueError("Factorial solo aplica a enteros no negativos")
         n = int(round(x))
         if n < 0:
             raise ValueError("Factorial requiere entero >= 0")
         if n > 170:
-            raise OverflowError("Factorial maximo soportado: 170!")
+            raise OverflowError("Factorial máximo soportado: 170!")
         return float(math.factorial(n))
 
     funciones = {
@@ -241,7 +241,7 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
             return _evaluar_nodo(nodo.body)
         if isinstance(nodo, ast.Constant):
             if isinstance(nodo.value, bool) or not isinstance(nodo.value, (int, float)):
-                raise ValueError("Solo se permiten constantes numericas reales")
+                raise ValueError("Solo se permiten constantes numéricas reales")
             val = float(nodo.value)
             if not math.isfinite(val):
                 raise ValueError("Constante no finita")
@@ -267,7 +267,7 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
             if op_fn is None:
                 raise ValueError("Operador binario no permitido")
             if isinstance(nodo.op, (ast.Div, ast.FloorDiv, ast.Mod)) and der == 0.0:
-                raise ZeroDivisionError("Division por cero")
+                raise ZeroDivisionError("División por cero")
             res = float(op_fn(izq, der))
             if not math.isfinite(res):
                 raise ValueError("Resultado no finito")
@@ -276,20 +276,20 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
             if nodo.keywords:
                 raise ValueError("No se permiten argumentos con nombre")
             if not isinstance(nodo.func, ast.Name):
-                raise ValueError("Solo se permiten funciones matematicas directas")
+                raise ValueError("Solo se permiten funciones matemáticas directas")
             clave_fn = nodo.func.id.lower()
             if clave_fn not in funciones:
-                raise ValueError(f"Funcion no permitida: {nodo.func.id}")
+                raise ValueError(f"Función no permitida: {nodo.func.id}")
             fn, min_args, max_args = funciones[clave_fn]
             n_args = len(nodo.args)
             if n_args < min_args or n_args > max_args:
-                raise ValueError(f"Cantidad de argumentos invalida para {clave_fn}()")
+                raise ValueError(f"Cantidad de argumentos inválida para {clave_fn}()")
             args_eval = [_evaluar_nodo(a) for a in nodo.args]
             res = float(fn(*args_eval))
             if not math.isfinite(res):
                 raise ValueError("Resultado no finito")
             return res
-        raise ValueError(f"Construccion no permitida: {type(nodo).__name__}")
+        raise ValueError(f"Construcción no permitida: {type(nodo).__name__}")
 
     resultado = _evaluar_nodo(arbol)
     if not math.isfinite(resultado):
@@ -298,7 +298,7 @@ def evaluar_expresion_segura(expr: str, ans: float = 0.0, modo_grados: bool = Fa
 
 
 def _raise_overflow() -> float:
-    raise OverflowError("Valor hiperbolico fuera de rango")
+    raise OverflowError("Valor hiperbólico fuera de rango")
 
 
 def formatear_numero(valor: float) -> str:
@@ -345,7 +345,7 @@ class CalculadoraCientifica(tk.Frame):
         self.encabezado.pack(fill=tk.X, pady=(0, 3))
         self.lbl_calc_titulo = tk.Label(
             self.encabezado,
-            text="CALCULADORA CIENTIFICA",
+            text="CALCULADORA CIENTÍFICA",
             font=("Consolas", 10, "bold"),
             fg=acento_eff,
             bg=bg_eff,

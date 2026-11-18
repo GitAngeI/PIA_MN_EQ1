@@ -11,3 +11,6 @@ env/
 # Archivos temporales y respaldos de progreso
 *.tmp
 *.corrupt.bak
+
+# Artefactos intermedios de PyInstaller
+build/

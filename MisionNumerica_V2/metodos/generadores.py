@@ -1,8 +1,9 @@
-"""Generador academico parametrizado y reproducible para los 32 metodos oficiales."""
+"""Generador académico parametrizado y reproducible para los 32 métodos oficiales."""
 
 import random
 from typing import Any, Dict, Optional
 
+from ..ui.tema import normalizar_nombre_metodo
 from .banco_libros import (
     BANCO_PLANTILLAS,
     generar_desde_banco,
@@ -22,9 +23,9 @@ def generar_mision(
     seed_id: Optional[str] = None,
     excluir_plantilla_id: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Genera un problema academico parametrizado (>=2 plantillas por metodo) con seed_id auditable."""
+    """Genera un problema académico parametrizado (>=2 plantillas por método) con seed_id auditable."""
     return generar_desde_banco(
-        nombre_metodo=nombre_metodo,
+        nombre_metodo=normalizar_nombre_metodo(nombre_metodo),
         rng=rng,
         seed_id=seed_id,
         excluir_plantilla_id=excluir_plantilla_id,

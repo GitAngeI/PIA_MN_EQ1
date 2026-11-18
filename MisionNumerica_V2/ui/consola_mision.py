@@ -20,6 +20,7 @@ from .tema import (
     F_TITULO,
     alternar_tema_actual,
     crear_boton_3d,
+    normalizar_nombre_metodo,
     obtener_paleta,
 )
 from .visor_grafica import VisorGraficaHUD
@@ -38,7 +39,7 @@ class ConsolaMision(tk.Frame):
     ):
         pal = obtener_paleta()
         super().__init__(master, bg=pal["fondo"])
-        self.nombre_metodo = nombre_metodo
+        self.nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         self.estado = estado
         self.al_volver = al_volver
         self.al_cambiar_tema = al_cambiar_tema
@@ -132,7 +133,7 @@ class ConsolaMision(tk.Frame):
 
         self.lbl_modo_badge = tk.Label(
             self.top,
-            text="PRACTICA",
+            text="PRÁCTICA",
             bg=pal["exito"],
             fg=pal["texto_en_exito"],
             font=(FUENTE_MONO, 9, "bold"),
@@ -174,7 +175,7 @@ class ConsolaMision(tk.Frame):
         self.ox_frame.pack(fill="x", padx=16, pady=(0, 4))
 
         self.lbl_oxigeno = tk.Label(
-            self.ox_frame, text="OXIGENO: 360 s", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 9, "bold"), width=26, anchor="w"
+            self.ox_frame, text="OXÍGENO: 360 s", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 9, "bold"), width=26, anchor="w"
         )
         self.lbl_oxigeno.pack(side="left", padx=10, pady=3)
 
@@ -229,7 +230,7 @@ class ConsolaMision(tk.Frame):
         self.lbl_referencia.pack(fill="x", padx=12, pady=(0, 4))
 
         self.lbl_sec_formula = tk.Label(
-            self.izq, text="FORMULA OFICIAL DEL METODO", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold")
+            self.izq, text="FÓRMULA OFICIAL", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold")
         )
         self.lbl_sec_formula.pack(anchor="w", padx=12, pady=(2, 2))
 
@@ -256,7 +257,7 @@ class ConsolaMision(tk.Frame):
 
         self.lbl_sec_prob = tk.Label(
             self.card_enunciado,
-            text="PROBLEMA ACADEMICO PARAMETRIZADO",
+            text="PROBLEMA ACADÉMICO PARAMETRIZADO",
             bg=pal["superficie_alt"],
             fg=pal["acento"],
             font=(FUENTE_MONO, 10, "bold"),
@@ -305,7 +306,7 @@ class ConsolaMision(tk.Frame):
 
         self.btn_tab_grafica = tk.Button(
             self.tabs_izq,
-            text="GRAFICA REAL",
+            text="GRÁFICA REAL",
             font=(FUENTE_MONO, 9, "bold"),
             bd=0,
             padx=10,
@@ -349,7 +350,7 @@ class ConsolaMision(tk.Frame):
         self.frame_progresiva = tk.Frame(self.cont_izq_sub, bg=pal["panel"])
         self.lbl_prog_titulo = tk.Label(
             self.frame_progresiva,
-            text="BITACORA PROGRESIVA DE ITERACIONES",
+            text="BITÁCORA PROGRESIVA DE ITERACIONES",
             bg=pal["panel"],
             fg=pal["exito"],
             font=(FUENTE_MONO, 10, "bold"),
@@ -500,7 +501,7 @@ class ConsolaMision(tk.Frame):
 
         self.btn_guia = tk.Button(
             self.btn_row,
-            text="? GUIA",
+            text="? GUÍA",
             command=self._abrir_modal_guia,
             bg=pal["btn_guia_bg"],
             fg=pal["btn_guia_fg"],
@@ -528,9 +529,9 @@ class ConsolaMision(tk.Frame):
         self.btn_nuevos_datos.pack(side="left")
 
         self._vincular_tooltip(self.entry_resp, lambda: self._texto_tooltip_paso())
-        self._vincular_tooltip(self.btn_guia, lambda: "Abre el formulario oficial completo y resumen de 3 pasos del metodo.")
-        self._vincular_tooltip(self.btn_toggle_calc, lambda: "Muestra u oculta la calculadora cientifica integrada.")
-        self._vincular_tooltip(self.btn_sin_tiempo, lambda: "Pausa/activa el temporizador libremente en revision docente (desactivado en Examen).")
+        self._vincular_tooltip(self.btn_guia, lambda: "Abre el formulario oficial completo y resumen en 3 pasos.")
+        self._vincular_tooltip(self.btn_toggle_calc, lambda: "Muestra u oculta la calculadora científica integrada.")
+        self._vincular_tooltip(self.btn_sin_tiempo, lambda: "Pausa o activa el temporizador libremente en revisión docente (desactivado en Examen).")
         self._vincular_tooltip(self.btn_tema, lambda: "Alterna entre tema oscuro espacial y tema claro (blanco/gris suave).")
 
         self.lbl_feedback = tk.Label(
@@ -874,7 +875,7 @@ class ConsolaMision(tk.Frame):
             self.lbl_modo_badge.config(text="MODO EXAMEN", bg=pal["peligro"], fg=pal["texto_en_peligro"])
             self.btn_nuevos_datos.boton.config(state="disabled", text="BLOQUEADO EXAMEN")
         else:
-            self.lbl_modo_badge.config(text="MODO PRACTICA", bg=pal["exito"], fg=pal["texto_en_exito"])
+            self.lbl_modo_badge.config(text="MODO PRÁCTICA", bg=pal["exito"], fg=pal["texto_en_exito"])
             self.btn_nuevos_datos.boton.config(state="normal", text="NUEVOS DATOS")
 
     # ------------------------------------------------------------------
@@ -1003,7 +1004,7 @@ class ConsolaMision(tk.Frame):
         hdr.pack(fill="x")
         tk.Label(
             hdr,
-            text=f"FORMULARIO Y GUIA OFICIAL // {self.nombre_metodo.upper()}",
+            text=f"FORMULARIO Y GUÍA OFICIAL // {self.nombre_metodo.upper()}",
             bg=pal["superficie_alt"],
             fg=pal["titulo"],
             font=("Segoe UI", 13, "bold"),
@@ -1051,7 +1052,7 @@ class ConsolaMision(tk.Frame):
             fr_ltx.pack(fill="x", pady=(0, 8))
             tk.Label(fr_ltx, image=foto, bg=pal["superficie"], padx=8, pady=6).pack(anchor="w")
 
-        tk.Label(inner_g, text="ECUACIONES COMPLETAS DEL METODO", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
+        tk.Label(inner_g, text="ECUACIONES COMPLETAS", bg=pal["panel"], fg=pal["acento"], font=(FUENTE_MONO, 10, "bold"), anchor="w").pack(fill="x")
         tk.Label(
             inner_g, text=guia["ecuaciones"], bg=pal["superficie"], fg=pal["titulo"],
             font=(FUENTE_MONO, 10), justify="left", anchor="w", padx=10, pady=8, wraplength=wrap_txt,
@@ -1260,7 +1261,7 @@ class ConsolaMision(tk.Frame):
             pass
 
         if self._micro_pausas_intento >= 2:
-            self._confirmar_incidente_foco("micro_pausas_excedidas", "LIMITE DE SALIDAS DE VENTANA EXCEDIDO")
+            self._confirmar_incidente_foco("micro_pausas_excedidas", "LÍMITE DE SALIDAS DE VENTANA EXCEDIDO")
             return
 
         if self._gracia_after_id is not None:
@@ -1274,7 +1275,7 @@ class ConsolaMision(tk.Frame):
         self._gracia_after_id = None
         if not self._seguridad_activa or not self.activo or self._breach_confirmado:
             return
-        self._confirmar_incidente_foco("salida_prolongada", "SALIDA PROLONGADA DE LA APLICACION (> 2.5 s)")
+        self._confirmar_incidente_foco("salida_prolongada", "SALIDA PROLONGADA DE LA APLICACIÓN (> 2.5 s)")
 
     def _al_recuperar_foco(self, evento) -> None:
         if not self._seguridad_activa or not self.activo or not self.estado.es_modo_examen:
@@ -1325,7 +1326,7 @@ class ConsolaMision(tk.Frame):
                 "titulo",
             )
         else:
-            self._confirmar_incidente_foco("salida_prolongada", "SALIDA PROLONGADA DE LA APLICACION")
+            self._confirmar_incidente_foco("salida_prolongada", "SALIDA PROLONGADA DE LA APLICACIÓN")
 
     def _confirmar_incidente_foco(self, tipo: str, titulo_motivo: str) -> None:
         if self._breach_confirmado:
@@ -1352,8 +1353,8 @@ class ConsolaMision(tk.Frame):
         self._mostrar_cortina_privacidad(
             titulo_motivo,
             (
-                "Se registro un incidente de abandono/minimizacion en Modo Examen.\n"
-                "Por politica anti-copia el problema actual fue invalidado y debes resolver otra variante."
+                "Se registró un incidente de abandono/minimización en Modo Examen.\n"
+                "Por política anti-copia el problema actual fue invalidado y debes resolver otra variante."
             ),
             bloqueada_con_reset=True,
         )
@@ -1494,13 +1495,13 @@ class ConsolaMision(tk.Frame):
         self.calculadora.limpiar()
 
         rec = self.estado.obtener_record(self.nombre_metodo)
-        self.lbl_record.config(text=f"REC: {rec:.1f} s" if rec is not None else "SIN RECORD")
+        self.lbl_record.config(text=f"REC: {rec:.1f} s" if rec is not None else "SIN RÉCORD")
         self._actualizar_indicador_estrellas()
 
         esc = obtener_escenario(self.mision.get("sala_id", 1))
         self._aplicar_colores_escenario(esc)
 
-        ref = self.mision.get("referencia", "Bibliografia Oficial")
+        ref = self.mision.get("referencia", "Bibliografía Oficial")
         seed = self.mision.get("seed_id", "-")
         self.lbl_referencia.config(text=f"Ref: {ref}   |   Seed ID: {seed}")
 
@@ -1511,7 +1512,7 @@ class ConsolaMision(tk.Frame):
         self._mostrar_tabla_progresiva()
         self.visor_grafica.actualizar(self.mision, esc["acento"], paso_idx=0, completado=False)
         self._mostrar_paso_actual()
-        self._set_feedback("Calcula el paso actual y verificalo antes de agotar el oxigeno.", "texto_sec")
+        self._set_feedback("Calcula el paso actual y verifícalo antes de agotar el oxígeno.", "texto_sec")
         self._refrescar_oxigeno_ui()
         self._configurar_seguridad_modo()
         self._tick_oxigeno()
@@ -1525,10 +1526,14 @@ class ConsolaMision(tk.Frame):
 
     def _mostrar_tabla(self) -> None:
         encabezados, filas = self.mision["datos_tabla"]
-        lineas = ["  |  ".join(str(h).ljust(12) for h in encabezados)]
+        anchos = [
+            max(12, len(str(h)), *(len(str(f[i])) for f in filas if i < len(f)))
+            for i, h in enumerate(encabezados)
+        ]
+        lineas = ["  |  ".join(str(h).ljust(anchos[i]) for i, h in enumerate(encabezados))]
         lineas.append("-" * len(lineas[0]))
         for fila in filas:
-            lineas.append("  |  ".join(str(c).ljust(12) for c in fila))
+            lineas.append("  |  ".join(str(c).ljust(anchos[i] if i < len(anchos) else 12) for i, c in enumerate(fila)))
         self.txt_tabla.config(state="normal")
         self.txt_tabla.delete("1.0", "end")
         self.txt_tabla.insert("1.0", "\n".join(lineas))
@@ -1536,25 +1541,32 @@ class ConsolaMision(tk.Frame):
 
     def _mostrar_tabla_progresiva(self) -> None:
         tp = self.mision.get("tabla_progresiva") or {}
-        titulo = tp.get("titulo", "BITACORA PROGRESIVA")
+        titulo = tp.get("titulo", "BITÁCORA PROGRESIVA")
         cols = tp.get("columnas") or []
         filas = tp.get("filas") or []
         self.lbl_prog_titulo.config(text=titulo.upper())
 
+        paso_ef = 999 if (not self.activo and self.paso_idx >= len(self.mision.get("pasos", []))) else self.paso_idx
+        filas_visibles = [f.get("valores") or [] for f in filas if paso_ef >= int(f.get("paso_min", 0))]
+        n_cols = max(len(cols), max((len(v) for v in filas_visibles), default=0))
+        anchos = []
+        for i in range(n_cols):
+            w_col = 11
+            if i < len(cols):
+                w_col = max(w_col, len(str(cols[i])))
+            for vals in filas_visibles:
+                if i < len(vals):
+                    w_col = max(w_col, len(str(vals[i])))
+            anchos.append(w_col)
+
         lineas = []
         if cols:
-            lineas.append(" | ".join(str(c).ljust(11) for c in cols))
+            lineas.append(" | ".join(str(c).ljust(anchos[i]) for i, c in enumerate(cols)))
             lineas.append("-" * len(lineas[0]))
-        paso_ef = 999 if (not self.activo and self.paso_idx >= len(self.mision.get("pasos", []))) else self.paso_idx
-        desbloqueadas = 0
-        ocultas = 0
-        for fila in filas:
-            if paso_ef >= int(fila.get("paso_min", 0)):
-                vals = fila.get("valores") or []
-                lineas.append(" | ".join(str(v).ljust(11) for v in vals))
-                desbloqueadas += 1
-            else:
-                ocultas += 1
+        desbloqueadas = len(filas_visibles)
+        ocultas = len(filas) - desbloqueadas
+        for vals in filas_visibles:
+            lineas.append(" | ".join(str(v).ljust(anchos[i] if i < len(anchos) else 11) for i, v in enumerate(vals)))
         if ocultas > 0:
             lineas.append(f"[{ocultas} fila(s) bloqueada(s) hasta completar pasos]")
 
@@ -1602,7 +1614,7 @@ class ConsolaMision(tk.Frame):
         self.lbl_paso_titulo.config(text=paso["titulo"])
         self.lbl_pregunta.config(text=paso["pregunta"])
         tip = str(paso.get("tooltip", "")).strip()
-        self.lbl_tooltip_input.config(text=f"Guia del campo: {tip}" if tip else "")
+        self.lbl_tooltip_input.config(text=f"Guía del campo: {tip}" if tip else "")
         self._ocultar_tooltip()
 
         self.entry_resp.pack_forget()
@@ -1663,16 +1675,16 @@ class ConsolaMision(tk.Frame):
                 try:
                     val = float(raw)
                 except ValueError:
-                    self._set_feedback("Ingresa un numero valido (ejemplo: 1.4142).", "alerta")
+                    self._set_feedback("Ingresa un número válido (ejemplo: 1.4142).", "alerta")
                     return
                 if not math.isfinite(val):
-                    self._set_feedback("Ingresa un numero real finito (no NaN o Infinito).", "alerta")
+                    self._set_feedback("Ingresa un número real finito (no NaN o Infinito).", "alerta")
                     return
                 correcto = self.es_respuesta_numerica_valida(val, paso["esperado"], paso["tolerancia"])
             else:
                 sel = self.opcion_var.get()
                 if sel == -1:
-                    self._set_feedback("Selecciona una opcion antes de verificar.", "alerta")
+                    self._set_feedback("Selecciona una opción antes de verificar.", "alerta")
                     return
                 correcto = sel == paso["indice_correcto"]
 
@@ -1682,7 +1694,7 @@ class ConsolaMision(tk.Frame):
                 self._actualizar_indicador_estrellas()
                 if self._esta_sin_tiempo():
                     self._refrescar_oxigeno_ui()
-                    msg_err = f"INCORRECTO (-0.5 estrella | Sin limite de tiempo). Pista: {paso['pista']}"
+                    msg_err = f"INCORRECTO (-0.5 estrella | Sin límite de tiempo). Pista: {paso['pista']}"
                 else:
                     self._penalizacion_seg += 8.0
                     self.oxigeno_restante = max(0.0, self.oxigeno_total - self._penalizacion_seg - (time.time() - self.tiempo_inicio))
@@ -1691,15 +1703,15 @@ class ConsolaMision(tk.Frame):
                         self._manejar_sin_oxigeno()
                         return
                     if self.estado.es_modo_examen:
-                        msg_err = "INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pistas deshabilitadas en Modo Examen."
+                        msg_err = "INCORRECTO (-8 s de oxígeno | -0.5 estrella). Pistas deshabilitadas en Modo Examen."
                     else:
-                        msg_err = f"INCORRECTO (-8 s de oxigeno | -0.5 estrella). Pista: {paso['pista']}"
+                        msg_err = f"INCORRECTO (-8 s de oxígeno | -0.5 estrella). Pista: {paso['pista']}"
                 self._set_feedback(msg_err, "alerta")
                 return
 
             self.paso_idx += 1
             if self.paso_idx < len(pasos):
-                self._set_feedback("Paso correcto. Avanza al siguiente calculo.", "exito")
+                self._set_feedback("Paso correcto. Avanza al siguiente cálculo.", "exito")
                 self._mostrar_paso_actual()
             else:
                 pal = obtener_paleta()
@@ -1719,12 +1731,12 @@ class ConsolaMision(tk.Frame):
                     seed_id=self.mision.get("seed_id", ""),
                     plantilla_id=self.mision.get("plantilla_id", ""),
                 )
-                msg_rec = "NUEVO RECORD DE TIEMPO." if es_record else "Modulo estabilizado."
+                msg_rec = "NUEVO RÉCORD DE TIEMPO." if es_record else "Módulo estabilizado."
                 self._mostrar_modal_hud(
-                    "Modulo Completado",
+                    "Módulo Completado",
                     (
                         f"Completaste {self.nombre_metodo} en {tiempo_total:.1f} s.\n"
-                        f"Calificacion: {est_ganadas:.1f} / 3.0 estrellas.\n"
+                        f"Calificación: {est_ganadas:.1f} / 3.0 estrellas.\n"
                         f"Seed auditado: {self.mision.get('seed_id', '-')}\n{msg_rec}"
                     ),
                     pal["exito"],
@@ -1737,12 +1749,12 @@ class ConsolaMision(tk.Frame):
     def _refrescar_oxigeno_ui(self) -> None:
         pal = obtener_paleta()
         if self._esta_sin_tiempo():
-            self.lbl_oxigeno.config(text="OXIGENO: LIBRE [DOCENTE]", fg=pal["exito"])
+            self.lbl_oxigeno.config(text="OXÍGENO: LIBRE [DOCENTE]", fg=pal["exito"])
             self._dibujar_barra_oxigeno(1.0)
             return
         color = pal["peligro"] if self.oxigeno_restante <= 25 else pal["acento"]
         suf = " [EXAM]" if self.estado.es_modo_examen else ""
-        self.lbl_oxigeno.config(text=f"OXIGENO: {int(math.ceil(self.oxigeno_restante))} s{suf}", fg=color)
+        self.lbl_oxigeno.config(text=f"OXÍGENO: {int(math.ceil(self.oxigeno_restante))} s{suf}", fg=color)
         self._dibujar_barra_oxigeno(self.oxigeno_restante / max(self.oxigeno_total, 1))
 
     def _manejar_sin_oxigeno(self) -> None:
@@ -1752,13 +1764,13 @@ class ConsolaMision(tk.Frame):
         self._cancelar_timer()
         self._desactivar_detector_foco()
         self._dibujar_barra_oxigeno(0.0)
-        self.lbl_oxigeno.config(text="OXIGENO: 0 s", fg=pal["peligro"])
+        self.lbl_oxigeno.config(text="OXÍGENO: 0 s", fg=pal["peligro"])
         plantilla_prev = self.mision.get("plantilla_id")
         self._mostrar_modal_hud(
-            "Oxigeno Agotado",
-            "Se agoto el suministro de oxigeno.\nSe generara un nuevo problema del banco academico para este metodo.",
+            "Oxígeno Agotado",
+            "Se agotó el suministro de oxígeno.\nSe generará un nuevo problema del banco académico para este módulo.",
             pal["alerta"],
-            "REINTENTAR MODULO >",
+            "REINTENTAR MÓDULO >",
             lambda: self.nueva_mision_aleatoria(permitir_en_examen=True, excluir_plantilla_id=plantilla_prev),
         )
 

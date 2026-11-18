@@ -116,8 +116,8 @@ class VisorGraficaHUD(tk.Canvas):
         h = max(self.winfo_height(), 190)
 
         grafica = self._mision.get("grafica") or {}
-        metodo = self._mision.get("metodo", "GRAFICA")
-        titulo = grafica.get("titulo") or f"VISOR ANALITICO // {metodo.upper()}"
+        metodo = self._mision.get("metodo", "GRÁFICA")
+        titulo = grafica.get("titulo") or f"VISOR ANALÍTICO // {metodo.upper()}"
         paso_ef = 999 if self._completado else self._paso_idx
 
         self.create_text(
@@ -189,7 +189,7 @@ class VisorGraficaHUD(tk.Canvas):
             self.create_rectangle(pad_izq, pad_sup, w - pad_der, h - pad_inf, outline=pal["visor_borde"])
             self.create_text(
                 pad_izq + plot_w / 2, pad_sup + plot_h / 2,
-                text="Completa los pasos de verificacion para trazar la curva.",
+                text="Completa los pasos de verificación para trazar la curva.",
                 fill=pal["texto_sec"], font=("Consolas", 10),
             )
             return
@@ -317,7 +317,7 @@ class VisorGraficaHUD(tk.Canvas):
             self.create_text(
                 pad_izq + plot_w / 2,
                 pad_sup + plot_h / 2,
-                text="GRAFICA DE INCOGNITAS EN ESPERA\nCompleta el Paso 2 para revelar magnitudes x1, x2, x3",
+                text="GRÁFICA DE INCÓGNITAS EN ESPERA\nCompleta el Paso 2 para revelar magnitudes x1, x2, x3",
                 fill=pal["texto_sec"],
                 font=("Consolas", 9),
                 justify=tk.CENTER,

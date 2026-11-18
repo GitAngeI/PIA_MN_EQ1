@@ -12,7 +12,7 @@ import time
 from typing import Dict, Any, Optional, List
 
 from ..rutas import obtener_ruta_progreso
-from ..ui.tema import TODOS_LOS_METODOS, SALAS
+from ..ui.tema import TODOS_LOS_METODOS, SALAS, normalizar_nombre_metodo
 
 METODOS_VALIDOS = set(TODOS_LOS_METODOS)
 _CLAVE_AUDITORIA = b"NaveAurora-FIME-OraliaZamora-v4-Auditoria"
@@ -125,31 +125,39 @@ class EstadoJuego:
         return self.tema_visual
 
     @staticmethod
-    def _normalizar_perfil(raw: Any) -> Dict[str, Any]:
+    def _normalizar_perfil(raw: Any, traducir_alias: bool = True) -> Dict[str, Any]:
         p = _nuevo_perfil_vacio()
         if not isinstance(raw, dict):
             return p
 
+        def _norm(clave: Any) -> str:
+            txt = str(clave)
+            return normalizar_nombre_metodo(txt) if traducir_alias else txt
+
         comp_raw = raw.get("completados")
         if isinstance(comp_raw, dict):
             p["completados"] = {
-                str(k): bool(v)
+                _norm(k): bool(v)
                 for k, v in comp_raw.items()
-                if str(k) in METODOS_VALIDOS and bool(v)
+                if _norm(k) in METODOS_VALIDOS and bool(v)
             }
 
         tiempos_raw = raw.get("mejores_tiempos")
         if isinstance(tiempos_raw, dict):
             for k, v in tiempos_raw.items():
-                if str(k) in METODOS_VALIDOS and isinstance(v, (int, float)) and v >= 0:
-                    p["mejores_tiempos"][str(k)] = round(float(v), 1)
+                clave = _norm(k)
+                if clave in METODOS_VALIDOS and isinstance(v, (int, float)) and v >= 0:
+                    val_t = round(float(v), 1)
+                    prev_t = p["mejores_tiempos"].get(clave)
+                    p["mejores_tiempos"][clave] = val_t if prev_t is None else min(prev_t, val_t)
 
         est_raw = raw.get("estrellas")
         if isinstance(est_raw, dict):
             for k, v in est_raw.items():
-                if str(k) in METODOS_VALIDOS and isinstance(v, (int, float)):
+                clave = _norm(k)
+                if clave in METODOS_VALIDOS and isinstance(v, (int, float)):
                     val = round(float(v) * 2.0) / 2.0
-                    p["estrellas"][str(k)] = max(0.0, min(3.0, val))
+                    p["estrellas"][clave] = max(p["estrellas"].get(clave, 0.0), max(0.0, min(3.0, val)))
 
         for m, ok in p["completados"].items():
             if ok and m not in p["estrellas"]:
@@ -165,13 +173,14 @@ class EstadoJuego:
             mp_raw = raw.get(campo_map)
             if isinstance(mp_raw, dict):
                 for k, v in mp_raw.items():
-                    if str(k) in METODOS_VALIDOS and isinstance(v, (int, float)):
-                        p[campo_map][str(k)] = max(0, int(v))
+                    clave = _norm(k)
+                    if clave in METODOS_VALIDOS and isinstance(v, (int, float)):
+                        p[campo_map][clave] = p[campo_map].get(clave, 0) + max(0, int(v))
 
         seeds_raw = raw.get("seeds_completados")
         if isinstance(seeds_raw, dict):
             p["seeds_completados"] = {
-                str(k): str(v) for k, v in seeds_raw.items() if str(k) in METODOS_VALIDOS
+                _norm(k): str(v) for k, v in seeds_raw.items() if _norm(k) in METODOS_VALIDOS
             }
 
         bit_raw = raw.get("bitacora_auditoria")
@@ -215,8 +224,8 @@ class EstadoJuego:
             self.tema_visual = "claro" if tema_raw == "claro" else "oscuro"
             self.alumno = str(data.get("alumno", "")).strip()
             self.matricula = str(data.get("matricula", "")).strip()
-            self.perfiles["practica"] = self._normalizar_perfil(data.get("practica"))
-            self.perfiles["examen"] = self._normalizar_perfil(data.get("examen"))
+            self.perfiles["practica"] = self._normalizar_perfil(data.get("practica"), traducir_alias=True)
+            self.perfiles["examen"] = self._normalizar_perfil(data.get("examen"), traducir_alias=True)
 
             firma_guardada = str(data.get("firma_hmac", ""))
             if firma_guardada:
@@ -228,7 +237,18 @@ class EstadoJuego:
                     "practica": self.perfiles["practica"],
                     "examen": self.perfiles["examen"],
                 }
-                self.integridad_verificada = hmac.compare_digest(firma_guardada, _firmar_dict(cuerpo))
+                valido = hmac.compare_digest(firma_guardada, _firmar_dict(cuerpo))
+                if not valido:
+                    cuerpo_legado = {
+                        "version": 4,
+                        "modo_actual": self.modo_actual,
+                        "alumno": self.alumno,
+                        "matricula": self.matricula,
+                        "practica": self._normalizar_perfil(data.get("practica"), traducir_alias=False),
+                        "examen": self._normalizar_perfil(data.get("examen"), traducir_alias=False),
+                    }
+                    valido = hmac.compare_digest(firma_guardada, _firmar_dict(cuerpo_legado))
+                self.integridad_verificada = valido
         else:
             # Migración automática de esquema v3 plano hacia perfil 'practica'
             self.perfiles["practica"] = self._normalizar_perfil(data)
@@ -293,6 +313,7 @@ class EstadoJuego:
         plantilla_id: str = "",
     ) -> bool:
         """Registra módulo completado, mejor calificación en estrellas y si hubo nuevo récord."""
+        nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         perfil = self._perfil_activo()
         perfil["completados"][nombre_metodo] = True
 
@@ -327,8 +348,10 @@ class EstadoJuego:
     def registrar_error(self, nombre_metodo: Optional[str] = None) -> None:
         perfil = self._perfil_activo()
         perfil["errores_totales"] += 1
-        if nombre_metodo and nombre_metodo in METODOS_VALIDOS:
-            perfil["errores_por_metodo"][nombre_metodo] = perfil["errores_por_metodo"].get(nombre_metodo, 0) + 1
+        if nombre_metodo:
+            nombre_norm = normalizar_nombre_metodo(nombre_metodo)
+            if nombre_norm in METODOS_VALIDOS:
+                perfil["errores_por_metodo"][nombre_norm] = perfil["errores_por_metodo"].get(nombre_norm, 0) + 1
         self.guardar()
 
     def registrar_micro_pausa(
@@ -338,6 +361,7 @@ class EstadoJuego:
         duracion_s: float = 0.0,
         paso: int = 0,
     ) -> None:
+        nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         perfil = self._perfil_activo()
         perfil["micro_pausas_so"] += 1
         perfil["bitacora_auditoria"].append({
@@ -359,6 +383,7 @@ class EstadoJuego:
         duracion_s: float = 0.0,
         paso: int = 0,
     ) -> None:
+        nombre_metodo = normalizar_nombre_metodo(nombre_metodo)
         perfil = self._perfil_activo()
         perfil["incidentes_foco"] += 1
         perfil["incidentes_por_metodo"][nombre_metodo] = perfil["incidentes_por_metodo"].get(nombre_metodo, 0) + 1
@@ -386,13 +411,14 @@ class EstadoJuego:
         self.guardar()
 
     def obtener_record(self, nombre_metodo: str) -> Optional[float]:
-        return self.mejores_tiempos.get(nombre_metodo)
+        return self.mejores_tiempos.get(normalizar_nombre_metodo(nombre_metodo))
 
     def obtener_estrellas(self, nombre_metodo: str) -> float:
         """Retorna 0.0 si no está completado, o 0.5..3.0 según desempeño."""
-        if not self.completados.get(nombre_metodo, False):
+        clave = normalizar_nombre_metodo(nombre_metodo)
+        if not self.completados.get(clave, False):
             return 0.0
-        return self.estrellas.get(nombre_metodo, 0.0)
+        return self.estrellas.get(clave, 0.0)
 
     def promedio_estrellas_sala(self, metodos: List[str]) -> float:
         """Promedio de estrellas (0.0..3.0) de una sala cuantizado a pasos de 0.5."""
@@ -458,7 +484,7 @@ class EstadoJuego:
                 writer.writerow(["ALUMNO", rep["alumno"], "MATRICULA", rep["matricula"], "MODO", rep["modo"], "CODIGO", rep["codigo_verificacion"]])
                 writer.writerow(["COMPLETADOS", rep["modulos_completados"], "ESTRELLAS", rep["estrellas_totales"], "ERRORES", rep["errores_totales"], "INCIDENTES_FOCO", rep["incidentes_foco"]])
                 writer.writerow([])
-                writer.writerow(["Sala", "Metodo", "Estado", "Estrellas", "MejorTiempo(s)", "Errores", "IncidentesFoco", "SeedID"])
+                writer.writerow(["Sala", "Método", "Estado", "Estrellas", "MejorTiempo(s)", "Errores", "IncidentesFoco", "SeedID"])
                 for m in rep["modulos"]:
                     writer.writerow([
                         m["sala"], m["metodo"], m["estado"], f"{m['estrellas']:.1f}",
@@ -470,21 +496,21 @@ class EstadoJuego:
         # TXT estructurado legible para entregar a la profesora
         lineas = [
             "=" * 78,
-            "MISION NUMERICA v4.0 // NAVE AURORA - REPORTE OFICIAL DE AUDITORIA ACADEMICA",
+            "MISIÓN NUMÉRICA v4.0 // NAVE AURORA - REPORTE OFICIAL DE AUDITORÍA ACADÉMICA",
             "Análisis Numérico - FIME UANL | Formulario Oficial Ing. Oralia Zamora Pequeño",
             "=" * 78,
             f"Fecha             : {rep['fecha_generacion']}",
-            f"Modo de Sesion    : {rep['modo']}",
+            f"Modo de Sesión    : {rep['modo']}",
             f"Estudiante        : {rep['alumno']}",
-            f"Matricula         : {rep['matricula']}",
-            f"Modulos Aprobados : {rep['modulos_completados']}",
+            f"Matrícula         : {rep['matricula']}",
+            f"Módulos Aprobados : {rep['modulos_completados']}",
             f"Estrellas Totales : {rep['estrellas_totales']}",
             f"Errores Totales   : {rep['errores_totales']}",
             f"Incidentes Foco   : {rep['incidentes_foco']} (Micro-pausas SO <=2.5s: {rep['micro_pausas_so']})",
-            f"Integridad Guard  : {'VERIFICADA' if rep['integridad_json_valida'] else 'ALTERACION DETECTADA'}",
-            f"Codigo Verif. HMAC: {rep['codigo_verificacion']}",
+            f"Integridad Guard  : {'VERIFICADA' if rep['integridad_json_valida'] else 'ALTERACIÓN DETECTADA'}",
+            f"Código Verif. HMAC: {rep['codigo_verificacion']}",
             "-" * 78,
-            f"{'METODO':<42} {'EST':>5} {'SEG':>7} {'ERR':>4} {'FOC':>4} {'SEED':>10}",
+            f"{'MÉTODO':<42} {'EST':>5} {'SEG':>7} {'ERR':>4} {'FOC':>4} {'SEED':>10}",
             "-" * 78,
         ]
         for m in rep["modulos"]:

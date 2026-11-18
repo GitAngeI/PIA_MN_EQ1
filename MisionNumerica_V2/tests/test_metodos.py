@@ -56,7 +56,7 @@ from MisionNumerica_V2.ui.calculadora import CalculadoraCientifica, evaluar_expr
 from MisionNumerica_V2.ui.consola_mision import ConsolaMision
 from MisionNumerica_V2.ui.estrellas import EstrellasCanvas
 from MisionNumerica_V2.ui.formulas_latex import LATEX_METODOS, renderizar_formula_tk, limpiar_cache_formulas
-from MisionNumerica_V2.ui.tema import TODOS_LOS_METODOS, SALAS, FUNDAMENTOS_METODOS
+from MisionNumerica_V2.ui.tema import TODOS_LOS_METODOS, SALAS, TEMAS_SALAS, FUNDAMENTOS_METODOS
 from MisionNumerica_V2.ui.visor_grafica import VisorGraficaHUD
 
 
@@ -445,7 +445,7 @@ class TestMetodosOficiales(unittest.TestCase):
                 ec.actualizar(0.5)
 
                 vg = VisorGraficaHUD(root)
-                for met in ("Lagrange", "Metodo Bisectriz", "Montante", "Regla Trapezoidal", "Euler Modificado"):
+                for met in ("Lagrange", "Bisectriz", "Montante", "Regla Trapezoidal", "Euler Modificado"):
                     mis = generar_mision(met, random.Random(7))
                     vg.actualizar(mis, "#F4A261", paso_idx=0, completado=False)
                     vg.actualizar(mis, "#F4A261", paso_idx=2, completado=True)
@@ -453,7 +453,7 @@ class TestMetodosOficiales(unittest.TestCase):
                 est = EstadoJuego(ruta=os.path.join(tmp, "ex.json"))
                 est.establecer_modo("examen", "Carlos Ruiz", "2055511")
                 vuelto = []
-                con = ConsolaMision(root, "Metodo Bisectriz", est, al_volver=lambda: vuelto.append(True))
+                con = ConsolaMision(root, "Bisectriz", est, al_volver=lambda: vuelto.append(True))
                 root.update_idletasks()
 
                 # Boton NUEVOS DATOS deshabilitado y pistas ocultas en examen
@@ -556,9 +556,9 @@ class TestMetodosOficiales(unittest.TestCase):
                     app.update()
                     app.mostrar_sala(2)  # Sala con 6 metodos (la mas alta)
                     app.update()
-                    app.mostrar_entorno_metodo("Metodo Bisectriz", 2)
+                    app.mostrar_entorno_metodo("Bisectriz", 2)
                     app.update()
-                    app.mostrar_mision("Metodo Bisectriz", 2)
+                    app.mostrar_mision("Bisectriz", 2)
                     app.update()
                     app.mostrar_certificado_final()
                     app.update()
@@ -580,14 +580,14 @@ class TestMetodosOficiales(unittest.TestCase):
 
         # Temporizadores escalonados (240s basico, 360s intermedio, 480-600s avanzado)
         self.assertEqual(generar_mision("Interpolación lineal", random.Random(1))["oxigeno_seg"], 240)
-        self.assertEqual(generar_mision("Linea Recta", random.Random(1))["oxigeno_seg"], 360)
+        self.assertEqual(generar_mision("Línea Recta", random.Random(1))["oxigeno_seg"], 360)
         self.assertEqual(generar_mision("Montante", random.Random(1))["oxigeno_seg"], 480)
         self.assertEqual(generar_mision("Newton – Cotes Abiertas", random.Random(1))["oxigeno_seg"], 540)
         self.assertEqual(generar_mision("Euler Modificado", random.Random(1))["oxigeno_seg"], 540)
         self.assertEqual(generar_mision("Runge - Kutta 3er Orden", random.Random(1))["oxigeno_seg"], 600)
 
         # Linea Recta: notacion Ing. Oralia g(x)=a0+a1*x + todas las sumatorias (n, sum x, sum y, sum x^2, sum xy)
-        m_lr = generar_mision("Linea Recta", random.Random(3))
+        m_lr = generar_mision("Línea Recta", random.Random(3))
         self.assertIn("a0 + a1*x", m_lr["formula"])
         self.assertIn("sum x^2", m_lr["formula"])
         tp_lr_txt = " ".join(str(x) for fila in m_lr["tabla_progresiva"]["filas"] for x in fila["valores"])
@@ -624,7 +624,7 @@ class TestMetodosOficiales(unittest.TestCase):
             root.attributes("-alpha", 0.0)
             root.geometry("980x640+-4000+-4000")
             try:
-                for m in ("Linea Recta", "Euler Modificado", "Newton – Cotes Abiertas"):
+                for m in ("Línea Recta", "Euler Modificado", "Newton – Cotes Abiertas"):
                     self.assertIsNotNone(renderizar_formula_tk(LATEX_METODOS[m], "#FFD166"))
 
                 con = ConsolaMision(root, "Euler Modificado", est, al_volver=lambda: None)
@@ -703,7 +703,7 @@ class TestMetodosOficiales(unittest.TestCase):
                     app.update()
 
                     # ConsolaMision: alternar tema claro <-> oscuro sin perder problema ni paso ni calc
-                    con = ConsolaMision(app, "Metodo Newton-Raphson", est2, al_volver=lambda: None)
+                    con = ConsolaMision(app, "Newton-Raphson", est2, al_volver=lambda: None)
                     con.pack(fill="both", expand=True)
                     app.update()
 
@@ -744,6 +744,55 @@ class TestMetodosOficiales(unittest.TestCase):
                     app.destroy()
         finally:
             establecer_tema_actual("oscuro")
+
+    def test_v4_3_correcciones_revision_clase(self):
+        # 1. Tema de Sala 1 debe decir solo "Interpolación"
+        self.assertEqual(TEMAS_SALAS[1], "Interpolación")
+
+        # 2. Ningun metodo individual debe iniciar con "Metodo" o "Método"
+        for m in TODOS_LOS_METODOS:
+            self.assertFalse(m.lower().startswith("metodo"), m)
+            self.assertFalse(m.lower().startswith("método"), m)
+
+        # 3. Todas las 32 formulas LaTeX deben renderizar sin fallos
+        root = tk.Tk()
+        root.withdraw()
+        try:
+            for m in TODOS_LOS_METODOS:
+                self.assertIsNotNone(renderizar_formula_tk(LATEX_METODOS[m], "#FFD166"), msg=f"LaTeX fallo en {m}")
+        finally:
+            root.destroy()
+
+        # 4. Claridad f(a), f(b) y f(x) real en Interpolación lineal (ambas plantillas)
+        for seed in ("P0-101", "P1-101"):
+            m_il = generar_mision("Interpolación lineal", seed_id=seed)
+            encab, filas = m_il["datos_tabla"]
+            self.assertNotIn("f(x)", encab)
+            txt_filas = " ".join(str(c) for fila in filas for c in fila)
+            self.assertIn("f(a)", txt_filas)
+            self.assertIn("f(b)", txt_filas)
+            self.assertIn("f(x) real", txt_filas)
+            self.assertIn("1)", m_il["enunciado"])
+            self.assertIn("2)", m_il["enunciado"])
+            self.assertIn("3)", m_il["enunciado"])
+
+        # 5. Migracion de nombres legados en EstadoJuego y alias en generar_mision
+        m_alias = generar_mision("Metodo Bisectriz", seed_id="P0-202")
+        self.assertEqual(m_alias["metodo"], "Bisectriz")
+        with tempfile.TemporaryDirectory() as tmp:
+            ruta = os.path.join(tmp, "legacy.json")
+            payload_legado = {
+                "completados": {"Metodo Bisectriz": True, "Linea Recta": True},
+                "estrellas": {"Metodo Bisectriz": 2.5, "Linea Recta": 3.0},
+                "mejores_tiempos": {"Metodo Bisectriz": 42.3},
+            }
+            with open(ruta, "w", encoding="utf-8") as fh:
+                json.dump(payload_legado, fh)
+            est_mig = EstadoJuego(ruta=ruta)
+            self.assertTrue(est_mig.completados.get("Bisectriz"))
+            self.assertTrue(est_mig.completados.get("Línea Recta"))
+            self.assertEqual(est_mig.obtener_estrellas("Bisectriz"), 2.5)
+            self.assertEqual(est_mig.obtener_record("Bisectriz"), 42.3)
 
 
 if __name__ == "__main__":
